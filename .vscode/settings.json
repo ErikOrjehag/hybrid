@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "dense": "cpp",
+        "eigenvalues": "cpp",
+        "type_traits": "cpp",
+        "iostream": "cpp",
+        "cmath": "cpp",
+        "complex": "cpp",
+        "fstream": "cpp",
+        "*.ipp": "cpp"
+    }
+}
