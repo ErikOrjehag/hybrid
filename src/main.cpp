@@ -17,12 +17,12 @@ double heuristic(const Node3D* start, const Node3D* goal)
 
 Node3D* hybrid_a_star(sf::RenderWindow& window, TransformStack& ts)
 {
-    size_t width = 100;
-    size_t height = 100;
+    size_t width = 30;
+    size_t height = 30;
     size_t depth = 20;
     Node3D* nodes3D = new Node3D[width * height * depth]();
     Node3D start(10.0, 10.0, 0.0, 0.0, 0.0, nullptr);
-    Node3D goal(20.0, 15.0, 0.0, 0.0, 0.0, nullptr);
+    Node3D goal(20.0, 12.0, 0.0, 0.0, 0.0, nullptr);
 
     PriorityQueue open;
 
@@ -50,14 +50,18 @@ Node3D* hybrid_a_star(sf::RenderWindow& window, TransformStack& ts)
         top->close();
 
         {
+            sf::Color c(sf::Color::Red);
+            //sf::Color c(255, 0, 0, std::max<int>(0, std::min<int>(255, (int)(255*((20.0 - top->cost())/20.0)))));
+            // std::cout << "cost: " << top->cost() << ", g: " << top->g << ", h: " << top->h << std::endl;
+
             sf::Vertex xAxis[] =
             {
-                sf::Vertex(sf::Vector2f(0, 0), sf::Color::Red),
-                sf::Vertex(sf::Vector2f(1, 0), sf::Color::Red),
-                sf::Vertex(sf::Vector2f(0.9, 0.1), sf::Color::Red),
-                sf::Vertex(sf::Vector2f(1, 0), sf::Color::Red),
-                sf::Vertex(sf::Vector2f(0.9, -0.1), sf::Color::Red),
-                sf::Vertex(sf::Vector2f(1, 0), sf::Color::Red)
+                sf::Vertex(sf::Vector2f(0, 0), c),
+                sf::Vertex(sf::Vector2f(1, 0), c),
+                sf::Vertex(sf::Vector2f(0.9, 0.1), c),
+                sf::Vertex(sf::Vector2f(1, 0), c),
+                sf::Vertex(sf::Vector2f(0.9, -0.1), c),
+                sf::Vertex(sf::Vector2f(1, 0), c)
             };
 
             ts.push();
@@ -102,6 +106,8 @@ Node3D* hybrid_a_star(sf::RenderWindow& window, TransformStack& ts)
                 window.draw(goalAxis, 6, sf::Lines, ts);
                 ts.pop();
             }
+            // packtrace path
+            delete[] nodes3D;
             return top;
         }
 
@@ -194,6 +200,7 @@ Node3D* hybrid_a_star(sf::RenderWindow& window, TransformStack& ts)
         ts.pop();
     }
 
+    delete[] nodes3D;
     return nullptr;
 }
 
