@@ -77,5 +77,5 @@ void Node3D::update_g()
 }
 
 bool CompareNode3D::operator()(const Node3D* lhs, const Node3D* rhs) const {
-    return lhs->cost() < rhs->cost();
+    return lhs->cost() > rhs->cost();
 }
