@@ -4,9 +4,17 @@
 #include "include/transform_stack.hpp"
 #include "include/visual.hpp"
 #include "include/utils.hpp"
+#include "include/rs_path.hpp"
 
 int main()
 {
+    std::vector<dyno::rs::Path> paths;
+    dyno::rs::generate_paths(0, 0, 0, 1, 1, M_PI / 2, 0.1, 0.1, paths);
+
+    std::cout << paths.size() << std::endl;
+
+    // return 0;
+
     std::vector<std::vector<double>> costmap;
     dyno::load_pgm("maps/map2.pgm", costmap);
 
@@ -107,6 +115,13 @@ int main()
 
         dyno::visual::draw_grid(window, ts, 20);
         dyno::visual::draw_frame(window, ts, 0, 0, 0);
+
+        for (auto& path : paths) {
+            for (size_t i = 0; i < path.x.size(); ++i)
+            {
+                dyno::visual::draw_frame(window, ts, path.x.at(i), path.y.at(i), path.yaw.at(i));
+            }
+        }
 
         window.display();
     }

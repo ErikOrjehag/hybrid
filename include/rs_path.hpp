@@ -13,60 +13,59 @@ namespace rs
 {
 
 struct Path {
-    std::vector<double> lengths;  // TODO
-    std::vector<std::string> ctypes; // Type of each part of the path
-    double L; // Total length
-    std::vector<double> x; // final x positions [m]
-    std::vector<double> y; // final y positions [m]
-    std::vector<double> yaw; // final yaw angles [rad]
-    std::vector<int> directions; // 1: forward, -1: backward
+    std::tuple<double, double, double> lengths;  // length of each part of the path
+    std::tuple<char, char, char> types;          // type of each part of the path
+    double L;                                    // total length
+    std::vector<double> x;                       // x positions [m] of each part of the path
+    std::vector<double> y;                       // y positions [m] of each part of the path
+    std::vector<double> yaw;                     // yaw angles [rad] of each part of the path
+    std::vector<int> directions;                 // 1: forward, -1: backward
 };
 
-void generate_paths(double sx, double sy, double syaw, double ex, double ey, double eyaw, double maxc, const std::vector<Path>& paths)
-{
-    double dx = ex - sx;
-    double dy = ey - sy;
-    double dyaw = eyaw - syaw; // TODO: is this OK?
-    double c = std::cos(syaw);
-    double s = std::sin(syaw);
-    double x = (c * dx + s * dy) * maxc;
-    double y = (-s * dx + c * dy) * maxc;
+void add_path(
+    std::vector<Path>& paths,
+    const std::tuple<double, double, double>& lengths,
+    const std::tuple<char, char, char>& types
+    );
 
-    SCS(x, y, dyaw, paths);
+void generate_paths(
+    double start_x,
+    double start_y,
+    double start_yaw,
+    double end_x,
+    double end_y,
+    double end_yaw,
+    double max_curvature,
+    double step_size,
+    std::vector<Path>& paths
+    );
 
-    // paths = CSC(x, y, dth, paths)
-    // paths = CCC(x, y, dth, paths)
-    // paths = CCCC(x, y, dth, paths)
-    // paths = CCSC(x, y, dth, paths)
-    // paths = CCSCC(x, y, dth, paths)
-}
+void populate_local_path_course(
+    Path& path,
+    double start_x,
+    double start_y,
+    double start_yaw,
+    double max_curvature,
+    double step_size
+    );
 
-std::tuple<bool, double, double, double> SLS(double x, double y, double yaw)
-{
-    yaw = dyno::normalize_angle(yaw);
-    
-    if (y != 0.0 && yaw > 0.0 && yaw < 0.99*M_PI)
-    {
-        double xd = -y / std::tan(yaw) + x;
-        double t = xd - std::tan(yaw / 2.0);
-        double u = yaw;
-        double v = std::sqrt(std::pow(x - xd, 2) + std::pow(y, 2)) - std::tan(yaw / 2.0);
-        
-        if (v < 0.0)
-        {
-            v *= -1;
-        }
+void interpolate(
+    size_t ind,
+    double l,
+    double type,
+    double max_curvature,
+    double ox,
+    double oy,
+    double oyaw,
+    std::vector<double>& x,
+    std::vector<double>& y,
+    std::vector<double>& yaw,
+    std::vector<int>& directions
+    );
 
-        return {true, t, u, v};
-    }
+void SCS(double x, double y, double yaw, std::vector<Path>& paths);
 
-    return {false, 0.0, 0.0, 0.0};
-}
-
-void SCS(double x, double y, double yaw, const std::vector<Path>& paths)
-{
-    const auto [ok, t, u, v] = SLS(x, y, yaw);
-}
+std::tuple<bool, std::tuple<double, double, double>> SLS(double x, double y, double yaw);
 
 } // namespace rs
 

@@ -5,7 +5,8 @@
 
 namespace dyno
 {
-    double normalize_angle(double angle);
+    double mod2pi(double angle);
+    double pi2pi(double angle);
 
     void load_pgm(const std::string& filename, std::vector<std::vector<double>>& costmap);
 
