@@ -1,4 +1,7 @@
+#pragma once
+
 #include <boost/heap/binomial_heap.hpp>
+#include <cmath>
 
 class Node3D;
 

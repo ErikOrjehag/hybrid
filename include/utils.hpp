@@ -1,17 +1,12 @@
-#include <math.h>
+#pragma once
 
-namespace utils
+#include <string>
+#include <vector>
+
+namespace dyno
 {
-    static inline double normalize_angle(double angle)
-    {
-        while (angle < 0.0)
-        {
-            angle += 2 * M_PI;
-        }
-        while (angle >= 2.0 * M_PI)
-        {
-            angle -= 2.0 * M_PI;
-        }
-        return angle;
-    }
-}
+    double normalize_angle(double angle);
+
+    void load_pgm(const std::string& filename, std::vector<std::vector<double>>& costmap);
+
+} // namespace dyno

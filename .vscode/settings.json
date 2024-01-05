@@ -82,6 +82,7 @@
         "typeinfo": "cpp",
         "valarray": "cpp",
         "variant": "cpp",
-        "semaphore": "cpp"
+        "semaphore": "cpp",
+        "forward_list": "cpp"
     }
 }

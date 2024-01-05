@@ -51,14 +51,14 @@ Node3D* Node3D::create_child(size_t i)
     if (i < 3) {
         nx = x + DX[i] * std::cos(t) - DY[i] * std::sin(t);
         ny = y + DX[i] * std::sin(t) + DY[i] * std::cos(t);
-        nt = utils::normalize_angle(t + DT[i]);
+        nt = dyno::normalize_angle(t + DT[i]);
     }
     // backwards
     else
     {
         nx = x - DX[i - 3] * std::cos(t) - DY[i - 3] * std::sin(t);
         ny = y - DX[i - 3] * std::sin(t) + DY[i - 3] * std::cos(t);
-        nt = utils::normalize_angle(t - DT[i - 3]);
+        nt = dyno::normalize_angle(t - DT[i - 3]);
     }
 
     return new Node3D(nx, ny, nt, g, 0, this);

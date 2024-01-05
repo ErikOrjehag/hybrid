@@ -45,8 +45,17 @@ void TransformStack::pop()
 {
     sf::Transform transform = stack.top();
     stack.pop();
-    sf::Transform invTransform = transform.getInverse();
-    transformTot = transformTot.combine(invTransform);
+    
+    if (stack.empty())
+    {
+        transformTot = sf::Transform();
+    }
+    else
+    {
+        sf::Transform invTransform = transform.getInverse();
+        transformTot = transformTot.combine(invTransform);
+    }
+
     transformCur = transform;
 }
 

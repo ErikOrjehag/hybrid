@@ -3,12 +3,38 @@
 #include <SFML/Graphics.hpp>
 #include "include/transform_stack.hpp"
 #include "include/visual.hpp"
+#include "include/utils.hpp"
 
 int main()
 {
+    std::vector<std::vector<double>> costmap;
+    dyno::load_pgm("maps/map2.pgm", costmap);
+
+    sf::Uint8* pixels = new sf::Uint8[costmap.size() * costmap[0].size() * 4];
+    for (size_t row = 0; row < costmap.size(); ++row)
+    {
+        for (size_t col = 0; col < costmap[0].size(); ++col)
+        {
+            sf::Uint8* pixel = pixels + (row * costmap[0].size() + col) * 4;
+            pixel[0] = 255 * costmap[row][col];
+            pixel[1] = 255 * costmap[row][col];
+            pixel[2] = 255 * costmap[row][col];
+            pixel[3] = 255;
+        }
+    }
+
+    sf::Texture texture;
+    if (!texture.create(costmap[0].size(), costmap.size()))
+    {
+        throw std::runtime_error("Failed to create texture");
+    }
+    texture.update(pixels);
+    texture.setSmooth(false);
+    sf::Sprite sprite(texture);
+
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
-    sf::RenderWindow window(sf::VideoMode(640, 480), "MPC", sf::Style::Default, settings);
+    sf::RenderWindow window(sf::VideoMode(640, 480), "Hybrid A*", sf::Style::Default, settings);
 
     dyno::visual::TransformStack ts;
 
@@ -44,7 +70,10 @@ int main()
                 mouse_px = event_px;
 
                 // Eigen::Vector2d mouse_m = ts.transform_point(mouse_px);
-                // std::cout << "Mouse moved: " << mouse_m.x() << ", " << mouse_m.y() << std::endl;
+                // Eigen::Vector2i mouse_grid_index = ((mouse_m - Eigen::Vector2d(-19.390488, -10.627522) ) / 0.050000).cast<int>();
+                // double cost = costmap.at(mouse_grid_index.y()).at(mouse_grid_index.x());
+                // std::cout << "Mouse grid index: " << mouse_grid_index.x() << ", " << mouse_grid_index.y() << ", " << cost << std::endl;
+
             }
             else if (event.type == sf::Event::MouseWheelScrolled && event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel)
             {   
@@ -63,139 +92,24 @@ int main()
 
                 Eigen::Vector2d delta_m = mouse_m_after - mouse_m_before;
                 ts.translate(delta_m.x(), delta_m.y());
-                
+
                 // std::cout << "Mouse scroll delta: " << event.mouseWheelScroll.delta << std::endl;
             }
         }
 
         window.clear(sf::Color(50, 50, 50, 255));
 
+        ts.push();
+        ts.translate(-19.390488, -10.627522);
+        ts.scale(0.050000);
+        window.draw(sprite, ts);
+        ts.pop();
+
+        dyno::visual::draw_grid(window, ts, 20);
         dyno::visual::draw_frame(window, ts, 0, 0, 0);
 
         window.display();
     }
-
-    // sf::Clock clock;
-
-    // TransformStack ts;
-    // ts.rotate(-90);
-    // ts.scale(1, -1);
-    // ts.translate(5*WINDOW_HEIGHT/-6, 5*WINDOW_WIDTH/-6);
-    // ts.scale(PX_PER_METER, PX_PER_METER);
-
-    // Frame globalFrame;
-
-    // while (window.isOpen())
-    // {
-    //     sf::Event event;
-    //     while (window.pollEvent(event))
-    //     {
-    //         if (event.type == sf::Event::Closed)
-    //         {
-    //             window.close();
-    //         }
-    //         else if (event.type == sf::Event::KeyPressed)
-    //         {
-    //             if (event.key.code == sf::Keyboard::Num1)
-    //             {
-    //                 controlState = SET_START;
-    //             }
-    //             else if (event.key.code == sf::Keyboard::Num2)
-    //             {
-    //                 controlState = SET_GOAL;
-    //             }
-    //             else if (event.key.code == sf::Keyboard::Up)
-    //             {
-    //                 max_iter += 1;
-    //             }
-    //             else if (event.key.code == sf::Keyboard::Down)
-    //             {
-    //                 max_iter = std::max(0, max_iter - 1);
-    //             }
-    //         }
-    //         else if (event.type == sf::Event::MouseButtonPressed)
-    //         {
-    //             if (event.mouseButton.button == sf::Mouse::Button::Left)
-    //             {
-    //                 mousePosPress = sf::Transform(ts).getInverse() * sf::Vector2f(event.mouseButton.x, event.mouseButton.y);
-    //             }
-    //         }
-    //         else if (event.type == sf::Event::MouseButtonReleased)
-    //         {
-    //             if (event.mouseButton.button == sf::Mouse::Button::Left)
-    //             {
-    //                 sf::Vector2f mousePosRelease = sf::Transform(ts).getInverse() * sf::Vector2f(event.mouseButton.x, event.mouseButton.y);
-    //                 sf::Vector2f mousePosDelta = mousePosRelease - mousePosPress;
-    //                 float theta = atan2(mousePosDelta.y, mousePosDelta.x);
-    //                 if (controlState == SET_GOAL)
-    //                 {
-    //                     goal.x = mousePosPress.x;
-    //                     goal.y = mousePosPress.y;
-    //                     goal.z = theta;
-    //                 }
-    //                 else if (controlState == SET_START)
-    //                 {
-    //                     start.x = mousePosPress.x;
-    //                     start.y = mousePosPress.y;
-    //                     start.z = theta;
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     float dt = clock.restart().asSeconds();
-
-    //     window.clear(sf::Color(50, 50, 50, 255));
-
-    //     globalFrame.draw(window, ts);
-        
-    //     hybrid_a_star(window, ts, start, goal, path, max_iter);
-
-    //     if (path.size() > 0)
-    //     {
-    //         sf::Vertex line[path.size()];
-    //         for (size_t i = 0; i < path.size(); i++)
-    //         {
-    //             line[i] = sf::Vertex(sf::Vector2f(path[i].x, path[i].y), sf::Color::Red);
-    //         }
-    //         window.draw(line, path.size(), sf::LinesStrip, ts);
-    //     }
-
-    //     {
-    //         sf::Vertex startAxis[] =
-    //         {
-    //             sf::Vertex(sf::Vector2f(-0.2, 0), sf::Color::Blue),
-    //             sf::Vertex(sf::Vector2f(0, 0), sf::Color::Blue),
-    //             sf::Vertex(sf::Vector2f(-0.1, 0.1), sf::Color::Blue),
-    //             sf::Vertex(sf::Vector2f(0, 0), sf::Color::Blue),
-    //             sf::Vertex(sf::Vector2f(-0.1, -0.1), sf::Color::Blue),
-    //             sf::Vertex(sf::Vector2f(0, 0), sf::Color::Blue)
-    //         };
-
-    //         sf::Vertex goalAxis[] =
-    //         {
-    //             sf::Vertex(sf::Vector2f(-0.2, 0), sf::Color::Green),
-    //             sf::Vertex(sf::Vector2f(0, 0), sf::Color::Green),
-    //             sf::Vertex(sf::Vector2f(-0.1, 0.1), sf::Color::Green),
-    //             sf::Vertex(sf::Vector2f(0, 0), sf::Color::Green),
-    //             sf::Vertex(sf::Vector2f(-0.1, -0.1), sf::Color::Green),
-    //             sf::Vertex(sf::Vector2f(0, 0), sf::Color::Green)
-    //         };
-
-    //         ts.push();
-    //         ts.translate(start.x, start.y);
-    //         ts.rotate(start.z * 180 / M_PI);
-    //         window.draw(startAxis, 6, sf::Lines, ts);
-    //         ts.pop();
-    //         ts.push();
-    //         ts.translate(goal.x, goal.y);
-    //         ts.rotate(goal.z * 180 / M_PI);
-    //         window.draw(goalAxis, 6, sf::Lines, ts);
-    //         ts.pop();
-    //     }
-        
-    //     window.display();
-    // }
 
     return 0;
 }
