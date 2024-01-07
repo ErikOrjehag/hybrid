@@ -35,6 +35,13 @@ double pi2pi(double angle)
     return angle;
 }
 
+std::tuple<double, double> polar(double x, double y)
+{
+    double r = std::sqrt(x * x + y * y);
+    double theta = std::atan2(y, x);
+    return {r, theta};
+}
+
 void load_pgm(const std::string& filename, std::vector<std::vector<double>>& costmap)
 {
     std::ifstream file(filename);

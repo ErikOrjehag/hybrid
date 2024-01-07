@@ -8,10 +8,10 @@
 
 int main()
 {
-    std::vector<dyno::rs::Path> paths;
-    dyno::rs::generate_paths(0, 0, 0, 1, 1, M_PI / 2, 0.1, 0.1, paths);
+    size_t pi = 0;
 
-    std::cout << paths.size() << std::endl;
+    std::vector<dyno::rs::Path> paths;
+    dyno::rs::Path path;
 
     // return 0;
 
@@ -63,6 +63,14 @@ int main()
             else if (event.type == sf::Event::Resized)
             {
                 window.setView(sf::View({0, 0, static_cast<float>(event.size.width), static_cast<float>(event.size.height)}));
+            }
+            else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left)
+            {
+                Eigen::Vector2d mouse_m = ts.transform_point(mouse_px);
+                // paths.clear();
+                // dyno::rs::generate_paths(0, 0, 0, mouse_m.x(), mouse_m.y(), M_PI / 3, 0.1, 0.1, paths);
+                // std::cout << paths.size() << std::endl;
+                dyno::rs::shortest_path(0, 0, 0, mouse_m.x(), mouse_m.y(), M_PI / 3, 1.0, 0.1, path);
             }
             // handle mouse drag event
             else if (event.type == sf::Event::MouseMoved)
@@ -116,11 +124,25 @@ int main()
         dyno::visual::draw_grid(window, ts, 20);
         dyno::visual::draw_frame(window, ts, 0, 0, 0);
 
-        for (auto& path : paths) {
-            for (size_t i = 0; i < path.x.size(); ++i)
-            {
-                dyno::visual::draw_frame(window, ts, path.x.at(i), path.y.at(i), path.yaw.at(i));
-            }
+        // for (auto& path : paths) {
+        //     for (size_t i = 0; i < path.x.size(); ++i)
+        //     {
+        //         dyno::visual::draw_frame(window, ts, path.x.at(i), path.y.at(i), path.yaw.at(i));
+        //     }
+        // }
+
+        // if (paths.size() > 0)
+        // {
+        //     dyno::rs::Path& path = paths.at(((pi++)/100) % (paths.size()-1));
+        //     for (size_t i = 0; i < path.x.size(); ++i)
+        //     {
+        //         dyno::visual::draw_frame(window, ts, path.x.at(i), path.y.at(i), path.yaw.at(i));
+        //     }
+        // }
+
+        for (size_t i = 0; i < path.x.size(); ++i)
+        {
+            dyno::visual::draw_frame(window, ts, path.x.at(i), path.y.at(i), path.yaw.at(i));
         }
 
         window.display();
