@@ -5,6 +5,7 @@
 #include "include/visual.hpp"
 #include "include/utils.hpp"
 #include "include/rs_path.hpp"
+#include "include/voronoi.hpp"
 
 int main()
 {
@@ -13,10 +14,11 @@ int main()
     std::vector<dyno::rs::Path> paths;
     dyno::rs::Path path;
 
-    // return 0;
-
     std::vector<std::vector<double>> costmap;
     dyno::load_pgm("maps/map2.pgm", costmap);
+
+    std::vector<std::vector<double>> field;
+    dyno::voronoi_field(costmap, field);
 
     sf::Uint8* pixels = new sf::Uint8[costmap.size() * costmap[0].size() * 4];
     for (size_t row = 0; row < costmap.size(); ++row)
@@ -39,6 +41,28 @@ int main()
     texture.update(pixels);
     texture.setSmooth(false);
     sf::Sprite sprite(texture);
+
+    sf::Uint8* field_pixels = new sf::Uint8[field.size() * field[0].size() * 4];
+    for (size_t row = 0; row < field.size(); ++row)
+    {
+        for (size_t col = 0; col < field[0].size(); ++col)
+        {
+            sf::Uint8* pixel = field_pixels + (row * field[0].size() + col) * 4;
+            double f = std::min(1.0, field[row][col] / 50.0);
+            pixel[0] = 255 * f;
+            pixel[1] = 255 * f;
+            pixel[2] = 255 * f;
+            pixel[3] = 255;
+        }
+    }
+    sf::Texture field_texture;
+    if (!field_texture.create(field[0].size(), field.size()))
+    {
+        throw std::runtime_error("Failed to create texture");
+    }
+    field_texture.update(field_pixels);
+    field_texture.setSmooth(false);
+    sf::Sprite field_sprite(field_texture);
 
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
@@ -119,6 +143,7 @@ int main()
         ts.translate(-19.390488, -10.627522);
         ts.scale(0.050000);
         window.draw(sprite, ts);
+        window.draw(field_sprite, ts);
         ts.pop();
 
         dyno::visual::draw_grid(window, ts, 20);
