@@ -6,6 +6,7 @@
 #include "include/utils.hpp"
 #include "include/rs_path.hpp"
 #include "include/voronoi.hpp"
+#include "include/astar.hpp"
 
 int main()
 {
@@ -143,7 +144,7 @@ int main()
         ts.translate(-19.390488, -10.627522);
         ts.scale(0.050000);
         window.draw(sprite, ts);
-        window.draw(field_sprite, ts);
+        // window.draw(field_sprite, ts);
         ts.pop();
 
         dyno::visual::draw_grid(window, ts, 20);
