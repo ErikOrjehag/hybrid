@@ -44,6 +44,16 @@ namespace dyno
             ts.pop();
         }
 
+        void draw_point(sf::RenderWindow& window, dyno::visual::TransformStack& ts, double x, double y, double r, sf::Color color = sf::Color::White)
+        {
+            ts.push();
+            ts.translate(x-r/2.0, y-r/2.0);
+            sf::CircleShape point(r, 9);
+            point.setFillColor(color);
+            window.draw(point, ts);
+            ts.pop();
+        }
+
         void draw_grid(sf::RenderWindow& window, dyno::visual::TransformStack& ts, size_t size)
         {
             ts.push();

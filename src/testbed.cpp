@@ -21,6 +21,10 @@ int main()
     std::vector<std::vector<double>> field;
     dyno::voronoi_field(costmap, field);
 
+    std::vector<Eigen::Vector2i> astar_path;
+    std::vector<dyno::Cell> cells;
+    dyno::astart_search(costmap, field, 400, 300, 300, 160, astar_path, cells);
+
     sf::Uint8* pixels = new sf::Uint8[costmap.size() * costmap[0].size() * 4];
     for (size_t row = 0; row < costmap.size(); ++row)
     {
@@ -110,10 +114,10 @@ int main()
 
                 mouse_px = event_px;
 
-                // Eigen::Vector2d mouse_m = ts.transform_point(mouse_px);
-                // Eigen::Vector2i mouse_grid_index = ((mouse_m - Eigen::Vector2d(-19.390488, -10.627522) ) / 0.050000).cast<int>();
-                // double cost = costmap.at(mouse_grid_index.y()).at(mouse_grid_index.x());
-                // std::cout << "Mouse grid index: " << mouse_grid_index.x() << ", " << mouse_grid_index.y() << ", " << cost << std::endl;
+                Eigen::Vector2d mouse_m = ts.transform_point(mouse_px);
+                Eigen::Vector2i mouse_grid_index = ((mouse_m - Eigen::Vector2d(-19.390488, -10.627522) ) / 0.050000).cast<int>();
+                double cost = costmap.at(mouse_grid_index.y()).at(mouse_grid_index.x());
+                std::cout << "Mouse grid index: " << mouse_grid_index.x() << ", " << mouse_grid_index.y() << ", " << cost << std::endl;
 
             }
             else if (event.type == sf::Event::MouseWheelScrolled && event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel)
@@ -169,6 +173,29 @@ int main()
         for (size_t i = 0; i < path.x.size(); ++i)
         {
             dyno::visual::draw_frame(window, ts, path.x.at(i), path.y.at(i), path.yaw.at(i));
+        }
+
+        for (size_t i = 0; i < cells.size(); ++i)
+        {
+            Eigen::Vector2i p_grid(cells.at(i).state.row, cells.at(i).state.col);
+            Eigen::Vector2d p_m = p_grid.cast<double>() * 0.050000 + Eigen::Vector2d(-19.390488, -10.627522);
+            sf::Color color = sf::Color::Blue;
+            if (cells.at(i).is_open())
+            {
+                color = sf::Color::Yellow;
+            }
+            else if (cells.at(i).is_closed())
+            {
+                color = sf::Color::Green;
+            }
+            dyno::visual::draw_point(window, ts, p_m.x(), p_m.y(), 0.01, color);
+        }
+
+        for (size_t i = 0; i < astar_path.size(); ++i)
+        {
+            Eigen::Vector2i p_grid = astar_path.at(i);
+            Eigen::Vector2d p_m = p_grid.cast<double>() * 0.050000 + Eigen::Vector2d(-19.390488, -10.627522);
+            dyno::visual::draw_point(window, ts, p_m.x(), p_m.y(), 0.01, sf::Color::Red);
         }
 
         window.display();
