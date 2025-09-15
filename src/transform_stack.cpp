@@ -9,29 +9,30 @@ namespace visual
 void TransformStack::x_up_y_left_centered(const sf::Vector2u& windowSize, unsigned px_per_meter)
 {
     translate(windowSize.x / 2, windowSize.y / 2);
-    rotate(-90);
+    rotate(-M_PI_2);
     scale(1, -1);
     scale(px_per_meter);
 }
 
-void TransformStack::translate(float x, float y)
+void TransformStack::translate(double x, double y)
 {
     transformCur.translate(x,y);
 }
 
-void TransformStack::rotate(float angle)
+void TransformStack::rotate(double angle)
 {
-    transformCur.rotate(angle);
+    // angle in radians
+    transformCur.rotate(angle * 180.0 / M_PI);
 }
 
-void TransformStack::scale(float sx, float sy)
+void TransformStack::scale(double sx, double sy)
 {
     transformCur.scale(sx, sy);
 }
 
-void TransformStack::scale(float s)
+void TransformStack::scale(double s)
 {
-    scale(s,s);
+    scale(s, s);
 }
 
 void TransformStack::push()
@@ -73,6 +74,20 @@ TransformStack::operator sf::Transform()
 TransformStack::operator sf::RenderStates()
 {
     return static_cast<sf::RenderStates>( operator sf::Transform() );
+}
+
+void transform(TransformStack& ts, TransformArgs args, std::function<void()> func)
+{
+    ts.push();
+    ts.translate(args.x, args.y);
+    ts.rotate(args.angle);
+    if (args.s) {
+        ts.scale(args.s);
+    } else {
+        ts.scale(args.sx, args.sy);
+    }
+    func();
+    ts.pop();
 }
 
 } // namespace visual

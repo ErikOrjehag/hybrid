@@ -21,10 +21,10 @@ class TransformStack
         void x_up_y_left_centered(const sf::Vector2u& windowSize, unsigned px_per_meter = 50);
         
         // Transformations
-        void translate(float x, float y);
-        void rotate(float angle);
-        void scale(float sx, float sy);
-        void scale(float s);
+        void translate(double x, double y);
+        void rotate(double angle);
+        void scale(double sx, double sy);
+        void scale(double s);
         void push();
         void pop();
 
@@ -35,6 +35,17 @@ class TransformStack
         operator sf::Transform();
         operator sf::RenderStates();
 };
+
+struct TransformArgs {
+    double x = 0.0;
+    double y = 0.0;
+    double angle = 0.0;
+    double s = 0.0;
+    double sx = 1.0;
+    double sy = 1.0;
+};
+
+void transform(TransformStack& ts, TransformArgs args, std::function<void()> func);
 
 } // namespace visual
 

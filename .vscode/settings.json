@@ -84,6 +84,9 @@
         "variant": "cpp",
         "semaphore": "cpp",
         "forward_list": "cpp",
-        "csetjmp": "cpp"
+        "csetjmp": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "filesystem": "cpp"
     }
 }

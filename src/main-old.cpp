@@ -1,4 +1,6 @@
 
+#if 0
+
 #include <iostream>
 #include <SFML/Graphics.hpp>
 #include "include/transform_stack.hpp"
@@ -203,3 +205,5 @@ int main()
 
     return 0;
 }
+
+#endif
