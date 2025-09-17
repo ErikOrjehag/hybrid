@@ -12,15 +12,24 @@ int main()
     settings.antialiasingLevel = 8;
 
     sf::RenderWindow window(sf::VideoMode(640, 480), "Planner", sf::Style::Default, settings);
+    window.setFramerateLimit(120);
 
     dyno::visual::TransformStack ts;
     ts.x_up_y_left_centered(window.getSize());
 
     Eigen::Vector2d mouse_pos_px;
 
-    dyno::GridMap map;
-    map.loadPGM("maps/dobson.yaml");
-    dyno::visual::GridMapRenderer map_renderer(map);
+    dyno::GridMap occupancy_map;
+    occupancy_map.loadPGM("maps/dobson.yaml", true);
+    dyno::visual::GridMapRenderer occupancy_map_renderer(occupancy_map, sf::Color::White, sf::Color::Black, 0.3);
+
+    dyno::GridMap esdf_map;
+    esdf_map.makeESDF(occupancy_map);
+    dyno::visual::GridMapRenderer esdf_map_renderer(esdf_map, sf::Color::Blue, sf::Color::Red);
+
+    dyno::GridMap ridge_map;
+    ridge_map.makeRidge(esdf_map, 0.8, 100.0);
+    dyno::visual::GridMapRenderer ridge_map_renderer(ridge_map, sf::Color::Transparent, sf::Color::Green, 1.0);
 
     while (window.isOpen())
     {
@@ -28,7 +37,7 @@ int main()
         sf::Event event;
         while (window.pollEvent(event))
         {
-            if (event.type == sf::Event::Closed) 
+            if (event.type == sf::Event::Closed)
             {
                 window.close();
                 break;
@@ -75,16 +84,32 @@ int main()
 
         }
 
+        Eigen::Vector2d mouse_pos_m = ts.transform_point(mouse_pos_px);
+        double v, dvx, dvy;
+
+        if (occupancy_map.isInside(mouse_pos_m.x(), mouse_pos_m.y())) {
+            size_t grid_row, grid_col;
+            occupancy_map.worldToGrid(mouse_pos_m.x(), mouse_pos_m.y(), grid_row, grid_col);
+            esdf_map.interpolate(mouse_pos_m.x(), mouse_pos_m.y(), v, dvx, dvy, 1000.0);
+            printf("Mouse (px): %.1f, %.1f -> (m): %.2f, %.2f -> (grid): %zu, %zu -> value: %.1f\n, esdf -> v: %.2f, dvx: %.2f, dvy: %.2f\n",
+                mouse_pos_px.x(), mouse_pos_px.y(),
+                mouse_pos_m.x(), mouse_pos_m.y(),
+                grid_row, grid_col,
+                occupancy_map.at(grid_row, grid_col),
+                v, dvx, dvy);
+        }
+
         // Render new frame
         window.clear(sf::Color(50, 50, 50, 255));
 
-        map_renderer.draw(window, ts);
+        esdf_map_renderer.draw(window, ts);
+        occupancy_map_renderer.draw(window, ts);
+        ridge_map_renderer.draw(window, ts);
 
-        transform(ts, { }, [&]() {
-            dyno::visual::draw_grid(window, ts, 10);
-        });
+        dyno::visual::draw_grid(window, ts, 10);
+        dyno::visual::draw_frame(window, ts);
 
-        transform(ts, { .x=1, .angle=0.0 }, [&]() {
+        transform(ts, { .x=mouse_pos_m.x(), .y=mouse_pos_m.y(), .angle=std::atan2(dvy, dvx) }, [&]() {
             dyno::visual::draw_frame(window, ts);
         });
 
