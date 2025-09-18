@@ -4,6 +4,7 @@
 #include "include/transform_stack.hpp"
 #include <cmath>
 #include "include/grid_map.hpp"
+#include "include/hybrid_astar.hpp"
 
 namespace dyno
 {
@@ -74,6 +75,29 @@ void draw_grid(sf::RenderWindow& window, dyno::visual::TransformStack& ts, size_
     }
     ts.pop();
 }
+
+void draw_motion_primatives_at(sf::RenderWindow& window, dyno::visual::TransformStack& ts, dyno::hybrid_a_star::MotionPrimitives& motion_primatives, double x, double y, double angle, int recursion) {
+    transform(ts, { .x=x, .y=y, .angle=angle }, [&]() {
+        for (const auto& [ic, trajectory] : motion_primatives)
+        {
+            sf::VertexArray lines(sf::LineStrip, trajectory.size());
+            for (size_t i = 0; i < trajectory.size(); ++i)
+            {
+                lines[i].position = sf::Vector2f(trajectory[i].x, trajectory[i].y);
+                lines[i].color = sf::Color(255, 255, 255, 50);
+            }
+            window.draw(lines, ts);
+            if (recursion > 0)
+            {
+                const auto& last_state = trajectory.back();
+                double new_x = last_state.x;
+                double new_y = last_state.y;
+                double new_angle = last_state.yaw;
+                draw_motion_primatives_at(window, ts, motion_primatives, new_x, new_y, new_angle, recursion - 1);
+            }
+        }
+    });
+};
 
 class GridMapRenderer
 {

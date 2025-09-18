@@ -3,6 +3,8 @@
 #include "include/transform_stack.hpp"
 #include "include/visual.hpp"
 #include "include/utils.hpp"
+#include "include/rs_path.hpp"
+#include "include/hybrid_astar.hpp"
 
 int main()
 {
@@ -18,6 +20,7 @@ int main()
     ts.x_up_y_left_centered(window.getSize());
 
     Eigen::Vector2d mouse_pos_px;
+    Eigen::Vector2d mouse_pos_m;
 
     dyno::GridMap occupancy_map;
     occupancy_map.loadPGM("maps/dobson.yaml", true);
@@ -30,6 +33,19 @@ int main()
     dyno::GridMap ridge_map;
     ridge_map.makeRidge(esdf_map, 0.8, 100.0);
     dyno::visual::GridMapRenderer ridge_map_renderer(ridge_map, sf::Color::Transparent, sf::Color::Green, 1.0);
+
+    //
+    dyno::hybrid_a_star::MotionPrimitives motion_primatives = dyno::hybrid_a_star::precompute_motion_primatives();
+    std::vector<dyno::rs::Path> paths;
+    std::vector<dyno::hybrid_a_star::PathNode> astar_path;
+    printf("A* path length: %zu\n", astar_path.size());
+    dyno::hybrid_a_star::HybridAStarSearch astar_search(
+        esdf_map,
+        motion_primatives,
+        1'000'000,
+        100,
+    );
+    //
 
     while (window.isOpen())
     {
@@ -58,12 +74,13 @@ int main()
                 }
 
                 mouse_pos_px = event_pos_px;
+                mouse_pos_m = ts.transform_point(mouse_pos_px);
 
                 break;
             }
             if (event.type == sf::Event::MouseWheelScrolled && event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel)
             {
-                Eigen::Vector2d mouse_pos_m_before = ts.transform_point(mouse_pos_px);
+                Eigen::Vector2d mouse_pos_m_before = mouse_pos_m;
 
                 if (event.mouseWheelScroll.delta > 0)
                 {
@@ -79,7 +96,24 @@ int main()
                 Eigen::Vector2d delta_m = mouse_pos_m_after - mouse_pos_m_before;
                 ts.translate(delta_m.x(), delta_m.y());
 
+                mouse_pos_m = ts.transform_point(mouse_pos_px); // should not be necessaryp
+
                 break;
+            }
+
+            if (event.type == sf::Event::KeyReleased)
+            {
+                if (event.key.code == sf::Keyboard::P)
+                {
+                    dyno::hybrid_a_star::hybrid_a_star_search(
+                        esdf_map,
+                        motion_primatives,
+                        1'000'000,
+                        0, 0, 0,
+                        mouse_pos_m.x(), mouse_pos_m.y(), /*-30*M_PI/180.*/0,
+                        astar_path
+                    );
+                }
             }
 
         }
@@ -99,6 +133,9 @@ int main()
                 v, dvx, dvy);
         }
 
+        paths.clear();
+        dyno::rs::generate_paths(0, 0, 0, mouse_pos_m.x(), mouse_pos_m.y(), std::atan2(dvy, dvx), 1.0/1.0, 0.1, paths);
+
         // Render new frame
         window.clear(sf::Color(50, 50, 50, 255));
 
@@ -116,6 +153,34 @@ int main()
         transform(ts, { .x=2, .y=1 }, [&]() {
             dyno::visual::draw_point(window, ts, sf::Color::Cyan, 0.2);
         });
+
+        dyno::visual::draw_motion_primatives_at(window, ts, motion_primatives, 0, 0, 0, 1);
+
+        for (const auto& path : paths) {
+            sf::VertexArray lines(sf::LineStrip, path.x.size());
+            for (size_t i = 0; i < path.x.size(); ++i)
+            {
+                lines[i].position = sf::Vector2f(path.x[i], path.y[i]);
+                lines[i].color = sf::Color::Cyan;
+            }
+            window.draw(lines, ts);
+        }
+
+        if (astar_path.size() >= 2) {
+            sf::VertexArray lines(sf::LineStrip, astar_path.size());
+            for (size_t i = 0; i < astar_path.size(); ++i)
+            {
+                lines[i].position = sf::Vector2f(astar_path[i].x, astar_path[i].y);
+                lines[i].color = sf::Color::Yellow;
+
+                if (i % 1 == 0) {
+                    transform(ts, { .x=astar_path[i].x, .y=astar_path[i].y, .angle=astar_path[i].yaw, .s=0.1 }, [&]() {
+                        dyno::visual::draw_frame(window, ts);
+                    });
+                }
+            }
+            window.draw(lines, ts);
+        }
 
         window.display();
 

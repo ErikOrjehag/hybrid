@@ -42,44 +42,4 @@ std::tuple<double, double> polar(double x, double y)
     return {r, theta};
 }
 
-void load_pgm(const std::string& filename, std::vector<std::vector<double>>& costmap)
-{
-    std::ifstream file(filename);
-    std::string line;
-
-    std::getline(file, line);
-
-    if (line.compare("P5") != 0)
-    {
-        throw std::runtime_error("Invalid PGM file version");
-    }
-
-    do {
-        std::getline(file, line);
-    } while (line[0] == '#');
-
-    std::stringstream ss;
-    ss << line;
-    size_t width;
-    size_t height;
-    ss >> width >> height;
-
-    std::getline(file, line);
-
-    ss.clear();
-    ss << line;
-    size_t max_val;
-    ss >> max_val;
-
-    costmap.resize(height);
-    for (size_t row = height; row --> 0 ;)
-    {
-        costmap[row].resize(width);
-        for (size_t col = 0; col < width; ++col)
-        {
-            costmap[row][col] = 1.0 - (double)file.get() / (double)max_val;
-        }
-    }
-}
-
 } // namespace dyno

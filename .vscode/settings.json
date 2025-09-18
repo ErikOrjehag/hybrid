@@ -93,6 +93,7 @@
         "__split_buffer": "cpp",
         "queue": "cpp",
         "stack": "cpp",
-        "__nullptr": "cpp"
+        "__nullptr": "cpp",
+        "ios": "cpp"
     }
 }

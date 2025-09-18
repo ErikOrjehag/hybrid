@@ -15,6 +15,20 @@ void add_path(
     const std::vector<char>& types
     )
 {
+    bool reverse = false;
+    for (const auto l : lengths)
+    {
+        if (l < 0.0)
+        {
+            reverse = true;
+            break;
+        }
+    }
+    if (reverse)
+    {
+        return;
+    }
+
     double L = 0.0;
     for (const auto l : lengths)
     {
@@ -750,6 +764,7 @@ bool SLS(double x, double y, double yaw, double& t, double& u, double& v)
         t = xd - std::tan(yaw / 2.0);
         u = yaw;
         v = -std::sqrt(std::pow(x - xd, 2) + std::pow(y, 2)) - std::tan(yaw / 2.0);
+
         return true;
     }
 
