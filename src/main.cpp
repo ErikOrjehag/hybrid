@@ -21,6 +21,7 @@ int main()
 
     Eigen::Vector2d mouse_pos_px;
     Eigen::Vector2d mouse_pos_m;
+    Eigen::Vector2d mouse_pos_m_pressed;
 
     dyno::GridMap occupancy_map;
     occupancy_map.loadPGM("maps/dobson.yaml", true);
@@ -43,8 +44,8 @@ int main()
     dyno::hybrid_a_star::HybridAStarSearch astar_search(
         esdf_map,
         motion_primatives,
-        1'000'000,
-        1
+        10'000'000,
+        1'000
     );
     //
 
@@ -76,6 +77,13 @@ int main()
 
                 mouse_pos_px = event_pos_px;
                 mouse_pos_m = ts.transform_point(mouse_pos_px);
+
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                {
+                    Eigen::Vector2d delta_m = mouse_pos_m - mouse_pos_m_pressed;
+                    double mouse_yaw_pressed = std::atan2(delta_m.y(), delta_m.x());
+                    astar_search.setStartPose(mouse_pos_m_pressed.x(), mouse_pos_m_pressed.y(), mouse_yaw_pressed);
+                }
 
                 double v, dvx, dvy;
                 if (occupancy_map.isInside(mouse_pos_m.x(), mouse_pos_m.y())) {
@@ -119,9 +127,16 @@ int main()
                 if (event.key.code == sf::Keyboard::P)
                 {
                     astar_search.start(
-                        0, 0, 0,
-                        mouse_pos_m.x(), mouse_pos_m.y(), /*-30*M_PI/180.*/0
+                        mouse_pos_m.x(), mouse_pos_m.y(), esdf_gradient_yaw
                     );
+                }
+                continue;
+            }
+            if (event.type == sf::Event::MouseButtonPressed)
+            {
+                if (event.mouseButton.button == sf::Mouse::Left)
+                {
+                    mouse_pos_m_pressed = mouse_pos_m;
                 }
                 continue;
             }
@@ -188,6 +203,14 @@ int main()
         for (const auto& node : astar_frontier)
         {
             transform(ts, { .x=node.x, .y=node.y, .angle=node.yaw, .s=0.1 }, [&]() {
+                dyno::visual::draw_frame(window, ts);
+            });
+        }
+
+        {
+            double start_x, start_y, start_yaw;
+            astar_search.getStartPose(start_x, start_y, start_yaw);
+            transform(ts, { .x=start_x, .y=start_y, .angle=start_yaw, .sx=0.5 }, [&]() {
                 dyno::visual::draw_frame(window, ts);
             });
         }

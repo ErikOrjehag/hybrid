@@ -203,6 +203,10 @@ private:
     double y_;
 };
 
+double signed_diff_angle(double theta1, double theta2);
+
+double abs_diff_angle(double theta1, double theta2);
+
 class HybridAStarSearch
 {
 public:
@@ -214,10 +218,16 @@ public:
 
     void reset();
 
+    void setStartPose(double start_x, double start_y, double start_yaw);
+
+    void getStartPose(double& start_x, double& start_y, double& start_yaw) const
+    {
+        start_x = start_x_;
+        start_y = start_y_;
+        start_yaw = start_yaw_;
+    }
+
     void start(
-        double start_x,
-        double start_y,
-        double start_yaw,
         double goal_x,
         double goal_y,
         double goal_yaw

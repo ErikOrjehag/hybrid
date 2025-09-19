@@ -59,6 +59,17 @@ MotionPrimitives precompute_motion_primatives()
     return motion_primatives;
 }
 
+double signed_diff_angle(double theta1, double theta2)
+{
+    double d = theta1 - theta2;
+    return std::atan2(std::sin(d), std::cos(d));
+}
+
+double abs_diff_angle(double theta1, double theta2)
+{
+    return std::abs(signed_diff_angle(theta1, theta2));
+}
+
 HybridAStarSearch::HybridAStarSearch(
         const GridMap& esdf,
         const MotionPrimitives& motion_primatives,
@@ -92,10 +103,14 @@ void HybridAStarSearch::reset()
     best_g_cost_.resize(grid_.size(), std::numeric_limits<double>::infinity());
 }
 
+void HybridAStarSearch::setStartPose(double start_x, double start_y, double start_yaw)
+{
+    start_x_ = start_x;
+    start_y_ = start_y;
+    start_yaw_ = start_yaw;
+}
+
 void HybridAStarSearch::start(
-    double start_x,
-    double start_y,
-    double start_yaw,
     double goal_x,
     double goal_y,
     double goal_yaw
@@ -103,19 +118,16 @@ void HybridAStarSearch::start(
 {
     reset();
 
-    start_x_ = start_x;
-    start_y_ = start_y;
-    start_yaw_ = start_yaw;
     goal_x_ = goal_x;
     goal_y_ = goal_y;
     goal_yaw_ = goal_yaw;
 
-    size_t start_idx = grid_.worldToIdx(start_x, start_y, start_yaw);
+    size_t start_idx = grid_.worldToIdx(start_x_, start_y_, start_yaw_);
     size_t goal_idx = grid_.worldToIdx(goal_x, goal_y, goal_yaw);
 
     double g0 = 0.0;
-    double f0 = g0 + heuristic(start_x, start_y, start_yaw);
-    size_t n0 = pool_.push_back(start_x, start_y, start_yaw, g0, f0, -1, -1, -1);
+    double f0 = g0 + heuristic(start_x_, start_y_, start_yaw_);
+    size_t n0 = pool_.push_back(start_x_, start_y_, start_yaw_, g0, f0, -1, -1, -1);
     best_g_cost_[start_idx] = g0;
     open_set_.push(n0, f0);
 
@@ -169,9 +181,8 @@ void HybridAStarSearch::step()
         double dx = goal_x_ - current_x;
         double dy = goal_y_ - current_y;
         double d_pos = std::sqrt(dx * dx + dy * dy);
-        double d_yaw = std::abs(goal_yaw_ - current_yaw);
-        d_yaw = std::fmod(d_yaw + M_PI, 2 * M_PI) - M_PI; // wrap to [-pi, pi]
-        if (d_pos < 0.5/* && std::abs(d_yaw) < (15.0 * M_PI / 180.0)*/)
+        double d_yaw = abs_diff_angle(goal_yaw_, current_yaw);
+        if (d_pos < 0.5 && d_yaw < (15.0 * M_PI / 180.0))
         {
             goal_reached_idx_ = current_pool_index_;
             break; // goal reached
@@ -231,10 +242,12 @@ void HybridAStarSearch::step()
                     step_cost += 0.05 * (1.0 / clearance); // cost inversely proportional to clearance
                 }
             }
-            step_cost += trajectory.size() * DT; // time cost
-            double new_g_cost = pool_.g_cost[current_pool_index_] + step_cost;
-            new_g_cost += 0.1 * std::abs(last_state.turning_rate); // small cost for turning
+            step_cost += trajectory.size() * last_state.velocity * DT;
+            step_cost += 0.1 * std::abs(last_state.turning_rate);
 
+
+            double new_g_cost = pool_.g_cost[current_pool_index_] + step_cost;
+            
             if (new_g_cost >= best_g_cost_[grid_.worldToIdx(new_x, new_y, new_yaw)])
             {
                 continue; // not a better path
@@ -259,9 +272,8 @@ double HybridAStarSearch::heuristic(double x, double y, double yaw) const
     double dx = goal_x_ - x;
     double dy = goal_y_ - y;
     double d_pos = std::sqrt(dx * dx + dy * dy);
-    double d_yaw = std::abs(goal_yaw_ - yaw);
-    d_yaw = std::fmod(d_yaw + M_PI, 2 * M_PI) - M_PI; // wrap to [-pi, pi]
-    return d_pos/* + std::abs(d_yaw)*/; // weight position and yaw equally
+    double d_yaw = abs_diff_angle(goal_yaw_, yaw);
+    return 1.0*d_pos + 0.1*d_yaw;
 }
 
 void HybridAStarSearch::getGoalPath(std::vector<PathNode>& path) const
