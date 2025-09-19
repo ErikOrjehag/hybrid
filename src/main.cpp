@@ -39,11 +39,12 @@ int main()
     dyno::hybrid_a_star::MotionPrimitives motion_primatives = dyno::hybrid_a_star::precompute_motion_primatives();
     std::vector<dyno::rs::Path> paths;
     std::vector<dyno::hybrid_a_star::PathNode> astar_path;
+    std::vector<dyno::hybrid_a_star::PathNode> astar_frontier;
     dyno::hybrid_a_star::HybridAStarSearch astar_search(
         esdf_map,
         motion_primatives,
         1'000'000,
-        10'000
+        1
     );
     //
 
@@ -61,7 +62,7 @@ int main()
             if (event.type == sf::Event::Resized)
             {
                 window.setView(sf::View({0, 0, static_cast<float>(event.size.width), static_cast<float>(event.size.height)}));
-                break;
+                continue;
             }
             if (event.type == sf::Event::MouseMoved)
             {
@@ -76,7 +77,21 @@ int main()
                 mouse_pos_px = event_pos_px;
                 mouse_pos_m = ts.transform_point(mouse_pos_px);
 
-                break;
+                double v, dvx, dvy;
+                if (occupancy_map.isInside(mouse_pos_m.x(), mouse_pos_m.y())) {
+                    size_t grid_row, grid_col;
+                    occupancy_map.worldToGrid(mouse_pos_m.x(), mouse_pos_m.y(), grid_row, grid_col);
+                    esdf_map.interpolate(mouse_pos_m.x(), mouse_pos_m.y(), v, dvx, dvy, 1000.0);
+                    esdf_gradient_yaw = std::atan2(dvy, dvx);
+                    printf("Mouse (px): %.1f, %.1f -> (m): %.2f, %.2f -> (grid): %zu, %zu -> value: %.1f\n, esdf -> v: %.2f, dvx: %.2f, dvy: %.2f\n",
+                        mouse_pos_px.x(), mouse_pos_px.y(),
+                        mouse_pos_m.x(), mouse_pos_m.y(),
+                        grid_row, grid_col,
+                        occupancy_map.at(grid_row, grid_col),
+                        v, dvx, dvy);
+                }
+
+                continue;
             }
             if (event.type == sf::Event::MouseWheelScrolled && event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel)
             {
@@ -97,47 +112,29 @@ int main()
                 ts.translate(delta_m.x(), delta_m.y());
 
                 mouse_pos_m = ts.transform_point(mouse_pos_px); // should not be necessaryp
-
-                double v, dvx, dvy;
-                if (occupancy_map.isInside(mouse_pos_m.x(), mouse_pos_m.y())) {
-                    size_t grid_row, grid_col;
-                    occupancy_map.worldToGrid(mouse_pos_m.x(), mouse_pos_m.y(), grid_row, grid_col);
-                    esdf_map.interpolate(mouse_pos_m.x(), mouse_pos_m.y(), v, dvx, dvy, 1000.0);
-                    esdf_gradient_yaw = std::atan2(dvy, dvx);
-                    printf("Mouse (px): %.1f, %.1f -> (m): %.2f, %.2f -> (grid): %zu, %zu -> value: %.1f\n, esdf -> v: %.2f, dvx: %.2f, dvy: %.2f\n",
-                        mouse_pos_px.x(), mouse_pos_px.y(),
-                        mouse_pos_m.x(), mouse_pos_m.y(),
-                        grid_row, grid_col,
-                        occupancy_map.at(grid_row, grid_col),
-                        v, dvx, dvy);
-                }
-
-                break;
+                continue;
             }
-
             if (event.type == sf::Event::KeyReleased)
             {
                 if (event.key.code == sf::Keyboard::P)
                 {
-                    if (astar_search.active())
-                    {
-                        astar_search.step();
-                    }
-                    else
-                    {
-                        astar_search.start(
-                            0, 0, 0,
-                            mouse_pos_m.x(), mouse_pos_m.y(), /*-30*M_PI/180.*/0
-                        );
-                    }
-                    astar_search.bestPath(astar_path);
-                    printf("\nastar_path: %ld\n\n", astar_path.size());
+                    astar_search.start(
+                        0, 0, 0,
+                        mouse_pos_m.x(), mouse_pos_m.y(), /*-30*M_PI/180.*/0
+                    );
                 }
+                continue;
             }
 
         }
 
-        paths.clear();
+        if (astar_search.active())
+        {
+            astar_search.step();
+            astar_search.getCurrentPath(astar_path);
+            astar_search.getFrontier(astar_frontier, 100);
+        }
+
         if (std::hypot(mouse_pos_m.x(), mouse_pos_m.y()) > 0.1) {
             dyno::rs::generate_paths(0, 0, 0, mouse_pos_m.x(), mouse_pos_m.y(), esdf_gradient_yaw, 1.0/1.0, 0.1, paths);
         }
@@ -186,6 +183,13 @@ int main()
                 }
             }
             window.draw(lines, ts);
+        }
+
+        for (const auto& node : astar_frontier)
+        {
+            transform(ts, { .x=node.x, .y=node.y, .angle=node.yaw, .s=0.1 }, [&]() {
+                dyno::visual::draw_frame(window, ts);
+            });
         }
 
         window.display();

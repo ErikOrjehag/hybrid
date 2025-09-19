@@ -28,7 +28,7 @@ MotionPrimitives precompute_motion_primatives()
     {
         // double v = -MAX_VELOCITY + i * (2 * MAX_VELOCITY) / (NUM_VELOCITIES - 1);
         // double v = i * (MAX_VELOCITY) / (NUM_VELOCITIES - 1);
-        double v = MIN_VELOCITY + i * (MAX_VELOCITY - MIN_VELOCITY) / (NUM_VELOCITIES - 1);
+        double v = MIN_VELOCITY + i * (MAX_VELOCITY - MIN_VELOCITY) / std::max(1, NUM_VELOCITIES - 1);
         velocities.push_back(v);
     }
     MotionPrimitives motion_primatives;
@@ -76,24 +76,11 @@ HybridAStarSearch::HybridAStarSearch(
     {
     }
 
-void HybridAStarSearch::start(
-    double start_x,
-    double start_y,
-    double start_yaw,
-    double goal_x,
-    double goal_y,
-    double goal_yaw
-)
+void HybridAStarSearch::reset()
 {
-    start_x_ = start_x;
-    start_y_ = start_y;
-    start_yaw_ = start_yaw;
-    goal_x_ = goal_x;
-    goal_y_ = goal_y;
-    goal_yaw_ = goal_yaw;
-
     goal_reached_idx_ = -1;
     iterations_ = 0;
+    current_pool_index_ = -1;
 
     pool_.clear();
     pool_.reserve(200'000);
@@ -103,6 +90,25 @@ void HybridAStarSearch::start(
 
     best_g_cost_.clear();
     best_g_cost_.resize(grid_.size(), std::numeric_limits<double>::infinity());
+}
+
+void HybridAStarSearch::start(
+    double start_x,
+    double start_y,
+    double start_yaw,
+    double goal_x,
+    double goal_y,
+    double goal_yaw
+)
+{
+    reset();
+
+    start_x_ = start_x;
+    start_y_ = start_y;
+    start_yaw_ = start_yaw;
+    goal_x_ = goal_x;
+    goal_y_ = goal_y;
+    goal_yaw_ = goal_yaw;
 
     size_t start_idx = grid_.worldToIdx(start_x, start_y, start_yaw);
     size_t goal_idx = grid_.worldToIdx(goal_x, goal_y, goal_yaw);
@@ -129,31 +135,37 @@ void HybridAStarSearch::step()
             break;
         }
 
-        iterations_ += 1;
+        current_pool_index_ = open_set_.pop();
+        double current_x = pool_.x[current_pool_index_];
+        double current_y = pool_.y[current_pool_index_];
+        double current_yaw = pool_.yaw[current_pool_index_];
+        size_t current_grid_index = grid_.worldToIdx(current_x, current_y, current_yaw);
 
+        // Node to explore should be inside the map
+        if (!grid_.isInside(current_x, current_y))
+        {
+            continue;
+        }
+
+        // Node to explore should have the best g_cost for its grid cell,
+        // otherwise it's just a stale duplicate in the open set that we
+        // have not removed yet for efficiency reasons.
+        if (pool_.g_cost[current_pool_index_] < best_g_cost_[current_grid_index])
+        {
+            printf("Warning: stale node in open set, %.5f < %.5f\n", pool_.g_cost[current_pool_index_], best_g_cost_[current_grid_index]);
+            continue;
+        }
+
+        // Yielding mechanism is for visualization purposes, to allow
+        // the main loop to update the display every N iterations.
         if (yield_every_n_iterations_ > 0 && steps >= yield_every_n_iterations_)
         {
             break;
         }
 
         steps += 1;
+        iterations_ += 1;
 
-        size_t current_pool_index = open_set_.pop();
-        double current_x = pool_.x[current_pool_index];
-        double current_y = pool_.y[current_pool_index];
-        double current_yaw = pool_.yaw[current_pool_index];
-        size_t current_grid_index = grid_.worldToIdx(current_x, current_y, current_yaw);
-
-        if (!grid_.isInside(current_x, current_y))
-        {
-            continue;
-        }
-
-        if (pool_.g_cost[current_pool_index] > best_g_cost_[current_grid_index])
-        {
-            continue;
-        }
-        
         double dx = goal_x_ - current_x;
         double dy = goal_y_ - current_y;
         double d_pos = std::sqrt(dx * dx + dy * dy);
@@ -161,7 +173,7 @@ void HybridAStarSearch::step()
         d_yaw = std::fmod(d_yaw + M_PI, 2 * M_PI) - M_PI; // wrap to [-pi, pi]
         if (d_pos < 0.5/* && std::abs(d_yaw) < (15.0 * M_PI / 180.0)*/)
         {
-            goal_reached_idx_ = current_pool_index;
+            goal_reached_idx_ = current_pool_index_;
             break; // goal reached
         }
 
@@ -216,11 +228,12 @@ void HybridAStarSearch::step()
                 }
                 else
                 {
-                    step_cost += 0.01 * (1.0 / clearance); // cost inversely proportional to clearance
+                    step_cost += 0.05 * (1.0 / clearance); // cost inversely proportional to clearance
                 }
             }
             step_cost += trajectory.size() * DT; // time cost
-            double new_g_cost = pool_.g_cost[current_pool_index] + step_cost;
+            double new_g_cost = pool_.g_cost[current_pool_index_] + step_cost;
+            new_g_cost += 0.1 * std::abs(last_state.turning_rate); // small cost for turning
 
             if (new_g_cost >= best_g_cost_[grid_.worldToIdx(new_x, new_y, new_yaw)])
             {
@@ -230,7 +243,7 @@ void HybridAStarSearch::step()
             size_t new_grid_index = grid_.worldToIdx(new_x, new_y, new_yaw);
             best_g_cost_[new_grid_index] = new_g_cost;
             double new_f_cost = new_g_cost + heuristic(new_x, new_y, new_yaw);
-            size_t new_pool_index = pool_.push_back(new_x, new_y, new_yaw, new_g_cost, new_f_cost, current_pool_index, turning_rate_index, velocity_index);
+            size_t new_pool_index = pool_.push_back(new_x, new_y, new_yaw, new_g_cost, new_f_cost, current_pool_index_, turning_rate_index, velocity_index);
             open_set_.push(new_pool_index, new_f_cost);
         }
     }
@@ -238,7 +251,7 @@ void HybridAStarSearch::step()
 
 bool HybridAStarSearch::active()
 {
-    return iterations_ > 0;
+    return iterations_ > 0 && !(iterations_ >= max_iterations_) && !open_set_.empty() && goal_reached_idx_ < 0;
 }
 
 double HybridAStarSearch::heuristic(double x, double y, double yaw) const
@@ -251,7 +264,7 @@ double HybridAStarSearch::heuristic(double x, double y, double yaw) const
     return d_pos/* + std::abs(d_yaw)*/; // weight position and yaw equally
 }
 
-void HybridAStarSearch::getPath(std::vector<PathNode>& path) const
+void HybridAStarSearch::getGoalPath(std::vector<PathNode>& path) const
 {
     path.clear();
     if (goal_reached_idx_ < 0)
@@ -261,14 +274,14 @@ void HybridAStarSearch::getPath(std::vector<PathNode>& path) const
     backTracePath(path, goal_reached_idx_);
 }
 
-void HybridAStarSearch::bestPath(std::vector<PathNode>& path) const
+void HybridAStarSearch::getCurrentPath(std::vector<PathNode>& path) const
 {
-    if (open_set_.empty())
+    path.clear();
+    if (current_pool_index_ < 0)
     {
         return;
     }
-    int pool_index = open_set_.peek();
-    backTracePath(path, pool_index);
+    backTracePath(path, current_pool_index_);
 }
 
 void HybridAStarSearch::backTracePath(std::vector<PathNode>& path, int pool_index) const

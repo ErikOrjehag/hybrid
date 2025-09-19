@@ -12,12 +12,15 @@ namespace hybrid_a_star
 {
 
 const double MAX_TURNING_RATE = 0.9; // rad/s
-const double MAX_VELOCITY = 1.3; // m/s
-const double MIN_VELOCITY = 0.5; // m/s
+// const double MAX_VELOCITY = 1.3; // m/s
+// const double MIN_VELOCITY = 0.5; // m/s
+const double MAX_VELOCITY = 1.0; // m/s
+const double MIN_VELOCITY = 1.0; // m/s
 const double DT = 0.1; // s
 
 const int NUM_TURNING_RATES = 5;
-const int NUM_VELOCITIES = 3;
+// const int NUM_VELOCITIES = 3;
+const int NUM_VELOCITIES = 1;
 const int NUM_STEPS = 10;
 
 struct PrimState
@@ -109,6 +112,11 @@ public:
     void clear()
     {
         data_.clear();
+    }
+
+    const std::vector<HeapItem>& data() const
+    {
+        return data_;
     }
 
     void push(size_t node_index, double f_cost)
@@ -204,6 +212,8 @@ public:
         int max_iterations,
         int yield_every_n_iterations);
 
+    void reset();
+
     void start(
         double start_x,
         double start_y,
@@ -219,13 +229,42 @@ public:
 
     double heuristic(double x, double y, double yaw) const;
     
-    void getPath(std::vector<PathNode>& path) const;
+    void getGoalPath(std::vector<PathNode>& path) const;
 
-    void bestPath(std::vector<PathNode>& path) const;
+    void getCurrentPath(std::vector<PathNode>& path) const;
 
-    void backTracePath(std::vector<PathNode>& path, int pool_index) const;
+    void getFrontier(std::vector<PathNode>& frontier, size_t limit) const
+    {
+        // return up to 'limit' nodes from the open set with the lowest f_cost
+        frontier.clear();
+        std::vector<HeapItem> open_set_data = open_set_.data();
+        std:sort(open_set_data.begin(), open_set_data.end(), min_heap_cmp);
+        std::reverse(open_set_data.begin(), open_set_data.end());
+        for (size_t i = 0; i < std::min(limit, open_set_data.size()); ++i)
+        {
+            const auto& item = open_set_data[i];
+            int pool_index = item.node_index;
+            double x = pool_.x[pool_index];
+            double y = pool_.y[pool_index];
+            double yaw = pool_.yaw[pool_index];
+            size_t grid_index = grid_.worldToIdx(x, y, yaw);
+
+            if (pool_.g_cost[pool_index] < best_g_cost_[grid_index])
+            {
+                continue;
+            }
+
+            PathNode node;
+            node.x = pool_.x[pool_index];
+            node.y = pool_.y[pool_index];
+            node.yaw = pool_.yaw[pool_index];
+            frontier.push_back(node);
+        }
+    }
 
 private:
+    void backTracePath(std::vector<PathNode>& path, int pool_index) const;
+
     const GridMap& esdf_;
     const MotionPrimitives& motion_primatives_;
     int max_iterations_;
@@ -242,8 +281,10 @@ private:
     double goal_x_;
     double goal_y_;
     double goal_yaw_;
+
     int goal_reached_idx_;
     int iterations_;
+    int current_pool_index_;
 };
 
 } // namespace hybrid_a_star

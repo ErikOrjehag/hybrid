@@ -78,12 +78,25 @@ TransformStack::operator sf::RenderStates()
 
 void transform(TransformStack& ts, TransformArgs args, std::function<void()> func)
 {
+    bool need_push = args.x || args.y || args.angle || args.s || args.sx != 1.0 || args.sy != 1.0;
+    if (!need_push)
+    {
+        func();
+        return;
+    }
+
     ts.push();
-    ts.translate(args.x, args.y);
-    ts.rotate(args.angle);
+    if (args.x || args.y)
+    {
+        ts.translate(args.x, args.y);
+    }
+    if (args.angle)
+    {
+        ts.rotate(args.angle);
+    }
     if (args.s) {
         ts.scale(args.s);
-    } else {
+    } else if (args.sx != 1.0 || args.sy != 1.0) {
         ts.scale(args.sx, args.sy);
     }
     func();

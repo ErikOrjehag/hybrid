@@ -253,6 +253,8 @@ void generate_paths(
     std::vector<Path>& paths
     )
 {
+    paths.clear();
+
     double dx = end_x - start_x;
     double dy = end_y - start_y;
     double dyaw = end_yaw - start_yaw; // TODO: is this OK?
