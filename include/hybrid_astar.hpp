@@ -73,6 +73,18 @@ struct NodePool
         prim_turning_rate_index.reserve(n);
         prim_velocity_index.reserve(n);
     }
+
+    void clear()
+    {
+        x.clear();
+        y.clear();
+        yaw.clear(),
+        g_cost.clear();
+        f_cost.clear();
+        parent.clear();
+        prim_turning_rate_index.clear();
+        prim_velocity_index.clear();
+    }
 };
 
 struct HeapItem
@@ -89,8 +101,14 @@ static inline bool min_heap_cmp(const HeapItem& a, const HeapItem& b)
 class MinHeap
 {
 public:
-    void reserve(size_t n) {
+    void reserve(size_t n)
+    {
         data_.reserve(n);
+    }
+
+    void clear()
+    {
+        data_.clear();
     }
 
     void push(size_t node_index, double f_cost)
@@ -107,8 +125,14 @@ public:
         return node_index;
     }
 
-    bool empty() const {
+    bool empty() const
+    {
         return data_.empty();
+    }
+
+    int peek() const
+    {
+        return data_.back().node_index;
     }
 
 private:
@@ -171,18 +195,56 @@ private:
     double y_;
 };
 
-void hybrid_a_star_search(
-    const GridMap& esdf,
-    const MotionPrimitives& motion_primatives,
-    int max_iterations,
-    double start_x,
-    double start_y,
-    double start_yaw,
-    double goal_x,
-    double goal_y,
-    double goal_yaw,
-    std::vector<PathNode>& path
-);
+class HybridAStarSearch
+{
+public:
+    HybridAStarSearch(
+        const GridMap& esdf,
+        const MotionPrimitives& motion_primatives,
+        int max_iterations,
+        int yield_every_n_iterations);
+
+    void start(
+        double start_x,
+        double start_y,
+        double start_yaw,
+        double goal_x,
+        double goal_y,
+        double goal_yaw
+    );
+
+    void step();
+
+    bool active();
+
+    double heuristic(double x, double y, double yaw) const;
+    
+    void getPath(std::vector<PathNode>& path) const;
+
+    void bestPath(std::vector<PathNode>& path) const;
+
+    void backTracePath(std::vector<PathNode>& path, int pool_index) const;
+
+private:
+    const GridMap& esdf_;
+    const MotionPrimitives& motion_primatives_;
+    int max_iterations_;
+    int yield_every_n_iterations_;
+    
+    NodePool pool_;
+    MinHeap open_set_;
+    DiscreteGrid grid_;
+    std::vector<double> best_g_cost_;
+
+    double start_x_;
+    double start_y_;
+    double start_yaw_;
+    double goal_x_;
+    double goal_y_;
+    double goal_yaw_;
+    int goal_reached_idx_;
+    int iterations_;
+};
 
 } // namespace hybrid_a_star
 } // namespace dyno

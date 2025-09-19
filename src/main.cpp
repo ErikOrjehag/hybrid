@@ -35,15 +35,15 @@ int main()
     dyno::visual::GridMapRenderer ridge_map_renderer(ridge_map, sf::Color::Transparent, sf::Color::Green, 1.0);
 
     //
+    double esdf_gradient_yaw = 0.0;
     dyno::hybrid_a_star::MotionPrimitives motion_primatives = dyno::hybrid_a_star::precompute_motion_primatives();
     std::vector<dyno::rs::Path> paths;
     std::vector<dyno::hybrid_a_star::PathNode> astar_path;
-    printf("A* path length: %zu\n", astar_path.size());
     dyno::hybrid_a_star::HybridAStarSearch astar_search(
         esdf_map,
         motion_primatives,
         1'000'000,
-        100,
+        10'000
     );
     //
 
@@ -98,6 +98,20 @@ int main()
 
                 mouse_pos_m = ts.transform_point(mouse_pos_px); // should not be necessaryp
 
+                double v, dvx, dvy;
+                if (occupancy_map.isInside(mouse_pos_m.x(), mouse_pos_m.y())) {
+                    size_t grid_row, grid_col;
+                    occupancy_map.worldToGrid(mouse_pos_m.x(), mouse_pos_m.y(), grid_row, grid_col);
+                    esdf_map.interpolate(mouse_pos_m.x(), mouse_pos_m.y(), v, dvx, dvy, 1000.0);
+                    esdf_gradient_yaw = std::atan2(dvy, dvx);
+                    printf("Mouse (px): %.1f, %.1f -> (m): %.2f, %.2f -> (grid): %zu, %zu -> value: %.1f\n, esdf -> v: %.2f, dvx: %.2f, dvy: %.2f\n",
+                        mouse_pos_px.x(), mouse_pos_px.y(),
+                        mouse_pos_m.x(), mouse_pos_m.y(),
+                        grid_row, grid_col,
+                        occupancy_map.at(grid_row, grid_col),
+                        v, dvx, dvy);
+                }
+
                 break;
             }
 
@@ -105,36 +119,28 @@ int main()
             {
                 if (event.key.code == sf::Keyboard::P)
                 {
-                    dyno::hybrid_a_star::hybrid_a_star_search(
-                        esdf_map,
-                        motion_primatives,
-                        1'000'000,
-                        0, 0, 0,
-                        mouse_pos_m.x(), mouse_pos_m.y(), /*-30*M_PI/180.*/0,
-                        astar_path
-                    );
+                    if (astar_search.active())
+                    {
+                        astar_search.step();
+                    }
+                    else
+                    {
+                        astar_search.start(
+                            0, 0, 0,
+                            mouse_pos_m.x(), mouse_pos_m.y(), /*-30*M_PI/180.*/0
+                        );
+                    }
+                    astar_search.bestPath(astar_path);
+                    printf("\nastar_path: %ld\n\n", astar_path.size());
                 }
             }
 
         }
 
-        Eigen::Vector2d mouse_pos_m = ts.transform_point(mouse_pos_px);
-        double v, dvx, dvy;
-
-        if (occupancy_map.isInside(mouse_pos_m.x(), mouse_pos_m.y())) {
-            size_t grid_row, grid_col;
-            occupancy_map.worldToGrid(mouse_pos_m.x(), mouse_pos_m.y(), grid_row, grid_col);
-            esdf_map.interpolate(mouse_pos_m.x(), mouse_pos_m.y(), v, dvx, dvy, 1000.0);
-            printf("Mouse (px): %.1f, %.1f -> (m): %.2f, %.2f -> (grid): %zu, %zu -> value: %.1f\n, esdf -> v: %.2f, dvx: %.2f, dvy: %.2f\n",
-                mouse_pos_px.x(), mouse_pos_px.y(),
-                mouse_pos_m.x(), mouse_pos_m.y(),
-                grid_row, grid_col,
-                occupancy_map.at(grid_row, grid_col),
-                v, dvx, dvy);
-        }
-
         paths.clear();
-        dyno::rs::generate_paths(0, 0, 0, mouse_pos_m.x(), mouse_pos_m.y(), std::atan2(dvy, dvx), 1.0/1.0, 0.1, paths);
+        if (std::hypot(mouse_pos_m.x(), mouse_pos_m.y()) > 0.1) {
+            dyno::rs::generate_paths(0, 0, 0, mouse_pos_m.x(), mouse_pos_m.y(), esdf_gradient_yaw, 1.0/1.0, 0.1, paths);
+        }
 
         // Render new frame
         window.clear(sf::Color(50, 50, 50, 255));
@@ -146,7 +152,7 @@ int main()
         dyno::visual::draw_grid(window, ts, 10);
         dyno::visual::draw_frame(window, ts);
 
-        transform(ts, { .x=mouse_pos_m.x(), .y=mouse_pos_m.y(), .angle=std::atan2(dvy, dvx) }, [&]() {
+        transform(ts, { .x=mouse_pos_m.x(), .y=mouse_pos_m.y(), .angle=esdf_gradient_yaw }, [&]() {
             dyno::visual::draw_frame(window, ts);
         });
 

@@ -59,10 +59,7 @@ MotionPrimitives precompute_motion_primatives()
     return motion_primatives;
 }
 
-class HybridAStarSearch
-{
-public:
-    HybridAStarSearch(
+HybridAStarSearch::HybridAStarSearch(
         const GridMap& esdf,
         const MotionPrimitives& motion_primatives,
         int max_iterations,
@@ -71,209 +68,224 @@ public:
         motion_primatives_(motion_primatives),
         max_iterations_(max_iterations),
         yield_every_n_iterations_(yield_every_n_iterations),
+        goal_reached_idx_(-1),
+        iterations_(0),
         pool_(),
         open_set_(),
         grid_(esdf, 72)
     {
     }
 
-    void start(
-        double start_x,
-        double start_y,
-        double start_yaw,
-        double goal_x,
-        double goal_y,
-        double goal_yaw
-    )
+void HybridAStarSearch::start(
+    double start_x,
+    double start_y,
+    double start_yaw,
+    double goal_x,
+    double goal_y,
+    double goal_yaw
+)
+{
+    start_x_ = start_x;
+    start_y_ = start_y;
+    start_yaw_ = start_yaw;
+    goal_x_ = goal_x;
+    goal_y_ = goal_y;
+    goal_yaw_ = goal_yaw;
+
+    goal_reached_idx_ = -1;
+    iterations_ = 0;
+
+    pool_.clear();
+    pool_.reserve(200'000);
+
+    open_set_.clear();
+    open_set_.reserve(10'000);
+
+    best_g_cost_.clear();
+    best_g_cost_.resize(grid_.size(), std::numeric_limits<double>::infinity());
+
+    size_t start_idx = grid_.worldToIdx(start_x, start_y, start_yaw);
+    size_t goal_idx = grid_.worldToIdx(goal_x, goal_y, goal_yaw);
+
+    double g0 = 0.0;
+    double f0 = g0 + heuristic(start_x, start_y, start_yaw);
+    size_t n0 = pool_.push_back(start_x, start_y, start_yaw, g0, f0, -1, -1, -1);
+    best_g_cost_[start_idx] = g0;
+    open_set_.push(n0, f0);
+
+    step();
+}
+
+void HybridAStarSearch::step()
+{
+    const double ROBOT_RADIUS = 0.4;
+
+    size_t steps = 0;
+
+    while (!open_set_.empty())
     {
-        start_x_ = start_x;
-        start_y_ = start_y;
-        start_yaw_ = start_yaw;
-        goal_x_ = goal_x;
-        goal_y_ = goal_y;
-        goal_yaw_ = goal_yaw;
-
-        goal_reached_idx_ = -1;
-        iterations_ = 0;
-
-        pool_.clear();
-        pool_.reserve(200'000);
-
-        open_set_.clear();
-        open_set_.reserve(10'000);
-
-        best_g_cost_.clear();
-        best_g_cost_.resize(grid_.size(), std::numeric_limits<double>::infinity());
-
-        size_t start_idx = grid_.worldToIdx(start_x, start_y, start_yaw);
-        size_t goal_idx = grid_.worldToIdx(goal_x, goal_y, goal_yaw);
-
-        double g0 = 0.0;
-        double f0 = g0 + heuristic(start_x, start_y, start_yaw);
-        size_t n0 = pool_.push_back(start_x, start_y, start_yaw, g0, f0, -1, -1, -1);
-        best_g_cost_[start_idx] = g0;
-        open_set_.push(n0, f0);
-
-        step();
-    }
-
-    void step()
-    {
-        while (!open_set.empty())
+        if (iterations_ >= max_iterations_)
         {
-            if (iterations++ > max_iterations)
-            {
-                break;
-            }
-
-            size_t current_pool_index = open_set.pop();
-            double current_x = pool.x[current_pool_index];
-            double current_y = pool.y[current_pool_index];
-            double current_yaw = pool.yaw[current_pool_index];
-            size_t current_grid_index = grid.worldToIdx(current_x, current_y, current_yaw);
-
-            if (!grid.isInside(current_x, current_y))
-            {
-                continue;
-            }
-
-            if (pool.g_cost[current_pool_index] > best_g_cost[current_grid_index])
-            {
-                continue;
-            }
-            
-            double dx = goal_x - current_x;
-            double dy = goal_y - current_y;
-            double d_pos = std::sqrt(dx * dx + dy * dy);
-            double d_yaw = std::abs(goal_yaw - current_yaw);
-            d_yaw = std::fmod(d_yaw + M_PI, 2 * M_PI) - M_PI; // wrap to [-pi, pi]
-            if (d_pos < 0.5/* && std::abs(d_yaw) < (15.0 * M_PI / 180.0)*/)
-            {
-                goal_reached_idx = current_pool_index;
-                break; // goal reached
-            }
-
-            double cos_current_yaw = std::cos(current_yaw);
-            double sin_current_yaw = std::sin(current_yaw);
-
-            for (const auto& [prim_idx, trajectory] : motion_primatives)
-            {
-                int turning_rate_index = prim_idx.first;
-                int velocity_index = prim_idx.second;
-
-                const PrimState& last_state = trajectory.back();
-                double new_x = current_x + last_state.x * cos_current_yaw - last_state.y * sin_current_yaw;
-                double new_y = current_y + last_state.x * sin_current_yaw + last_state.y * cos_current_yaw;
-                double new_yaw = current_yaw + last_state.yaw;
-                new_yaw = std::fmod(new_yaw + M_PI, 2 * M_PI) - M_PI; // wrap to [-pi, pi]
-
-                if (!grid.isInside(new_x, new_y))
-                {
-                    continue;
-                }
-
-                bool collision = false;
-                for (const auto& state : trajectory)
-                {
-                    double check_x = current_x + state.x * cos_current_yaw - state.y * sin_current_yaw;
-                    double check_y = current_y + state.x * sin_current_yaw + state.y * cos_current_yaw;
-                    size_t row, col;
-                    grid.worldToGridRowCol(check_x, check_y, row, col);
-                    if (esdf.at(row, col) < ROBOT_RADIUS)
-                    {
-                        collision = true;
-                        break;
-                    }
-                }
-                if (collision)
-                {
-                    continue;
-                }
-
-                double step_cost = 0.0;
-                for (const auto& state : trajectory)
-                {
-                    double check_x = current_x + state.x * cos_current_yaw - state.y * sin_current_yaw;
-                    double check_y = current_y + state.x * sin_current_yaw + state.y * cos_current_yaw;
-                    size_t row, col;
-                    grid.worldToGridRowCol(check_x, check_y, row, col);
-                    double clearance = esdf.at(row, col);
-                    if (clearance < ROBOT_RADIUS)
-                    {
-                        step_cost += 1e6; // high cost for being too close to obstacles
-                    }
-                    else
-                    {
-                        step_cost += 1.0 / clearance; // cost inversely proportional to clearance
-                    }
-                }
-                step_cost += trajectory.size() * DT; // time cost
-                double new_g_cost = pool.g_cost[current_pool_index] + step_cost;
-
-                if (new_g_cost >= best_g_cost[grid.worldToIdx(new_x, new_y, new_yaw)])
-                {
-                    continue; // not a better path
-                }
-
-                size_t new_grid_index = grid.worldToIdx(new_x, new_y, new_yaw);
-                best_g_cost[new_grid_index] = new_g_cost;
-                double new_f_cost = new_g_cost + heuristic(new_x, new_y, new_yaw);
-                size_t new_pool_index = pool.push_back(new_x, new_y, new_yaw, new_g_cost, new_f_cost, current_pool_index, turning_rate_index, velocity_index);
-                open_set.push(new_pool_index, new_f_cost);
-            }
+            break;
         }
-    }
 
-    double heuristic(double x, double y, double yaw) const
-    {
-        double dx = goal_x_ - x;
-        double dy = goal_y_ - y;
+        iterations_ += 1;
+
+        if (yield_every_n_iterations_ > 0 && steps >= yield_every_n_iterations_)
+        {
+            break;
+        }
+
+        steps += 1;
+
+        size_t current_pool_index = open_set_.pop();
+        double current_x = pool_.x[current_pool_index];
+        double current_y = pool_.y[current_pool_index];
+        double current_yaw = pool_.yaw[current_pool_index];
+        size_t current_grid_index = grid_.worldToIdx(current_x, current_y, current_yaw);
+
+        if (!grid_.isInside(current_x, current_y))
+        {
+            continue;
+        }
+
+        if (pool_.g_cost[current_pool_index] > best_g_cost_[current_grid_index])
+        {
+            continue;
+        }
+        
+        double dx = goal_x_ - current_x;
+        double dy = goal_y_ - current_y;
         double d_pos = std::sqrt(dx * dx + dy * dy);
-        double d_yaw = std::abs(goal_yaw_ - yaw);
+        double d_yaw = std::abs(goal_yaw_ - current_yaw);
         d_yaw = std::fmod(d_yaw + M_PI, 2 * M_PI) - M_PI; // wrap to [-pi, pi]
-        return d_pos/* + std::abs(d_yaw)*/; // weight position and yaw equally
-    }
+        if (d_pos < 0.5/* && std::abs(d_yaw) < (15.0 * M_PI / 180.0)*/)
+        {
+            goal_reached_idx_ = current_pool_index;
+            break; // goal reached
+        }
 
-    void getPath(std::vector<PathNode>& path)
+        double cos_current_yaw = std::cos(current_yaw);
+        double sin_current_yaw = std::sin(current_yaw);
+
+        for (const auto& [prim_idx, trajectory] : motion_primatives_)
+        {
+            int turning_rate_index = prim_idx.first;
+            int velocity_index = prim_idx.second;
+
+            const PrimState& last_state = trajectory.back();
+            double new_x = current_x + last_state.x * cos_current_yaw - last_state.y * sin_current_yaw;
+            double new_y = current_y + last_state.x * sin_current_yaw + last_state.y * cos_current_yaw;
+            double new_yaw = current_yaw + last_state.yaw;
+            new_yaw = std::fmod(new_yaw + M_PI, 2 * M_PI) - M_PI; // wrap to [-pi, pi]
+
+            if (!grid_.isInside(new_x, new_y))
+            {
+                continue;
+            }
+
+            bool collision = false;
+            for (const auto& state : trajectory)
+            {
+                double check_x = current_x + state.x * cos_current_yaw - state.y * sin_current_yaw;
+                double check_y = current_y + state.x * sin_current_yaw + state.y * cos_current_yaw;
+                size_t row, col;
+                grid_.worldToGridRowCol(check_x, check_y, row, col);
+                if (esdf_.at(row, col) < ROBOT_RADIUS)
+                {
+                    collision = true;
+                    break;
+                }
+            }
+            if (collision)
+            {
+                continue;
+            }
+
+            double step_cost = 0.0;
+            for (const auto& state : trajectory)
+            {
+                double check_x = current_x + state.x * cos_current_yaw - state.y * sin_current_yaw;
+                double check_y = current_y + state.x * sin_current_yaw + state.y * cos_current_yaw;
+                size_t row, col;
+                grid_.worldToGridRowCol(check_x, check_y, row, col);
+                double clearance = esdf_.at(row, col);
+                if (clearance < ROBOT_RADIUS)
+                {
+                    step_cost += 1e6; // high cost for being too close to obstacles
+                }
+                else
+                {
+                    step_cost += 0.01 * (1.0 / clearance); // cost inversely proportional to clearance
+                }
+            }
+            step_cost += trajectory.size() * DT; // time cost
+            double new_g_cost = pool_.g_cost[current_pool_index] + step_cost;
+
+            if (new_g_cost >= best_g_cost_[grid_.worldToIdx(new_x, new_y, new_yaw)])
+            {
+                continue; // not a better path
+            }
+
+            size_t new_grid_index = grid_.worldToIdx(new_x, new_y, new_yaw);
+            best_g_cost_[new_grid_index] = new_g_cost;
+            double new_f_cost = new_g_cost + heuristic(new_x, new_y, new_yaw);
+            size_t new_pool_index = pool_.push_back(new_x, new_y, new_yaw, new_g_cost, new_f_cost, current_pool_index, turning_rate_index, velocity_index);
+            open_set_.push(new_pool_index, new_f_cost);
+        }
+    }
+}
+
+bool HybridAStarSearch::active()
+{
+    return iterations_ > 0;
+}
+
+double HybridAStarSearch::heuristic(double x, double y, double yaw) const
+{
+    double dx = goal_x_ - x;
+    double dy = goal_y_ - y;
+    double d_pos = std::sqrt(dx * dx + dy * dy);
+    double d_yaw = std::abs(goal_yaw_ - yaw);
+    d_yaw = std::fmod(d_yaw + M_PI, 2 * M_PI) - M_PI; // wrap to [-pi, pi]
+    return d_pos/* + std::abs(d_yaw)*/; // weight position and yaw equally
+}
+
+void HybridAStarSearch::getPath(std::vector<PathNode>& path) const
+{
+    path.clear();
+    if (goal_reached_idx_ < 0)
     {
-        path.clear();
-        if (goal_reached_idx_ < 0)
-        {
-            return;
-        }
-        int idx = goal_reached_idx_;
-        while (idx >= 0)
-        {
-            PathNode node;
-            node.x = pool.x[idx];
-            node.y = pool.y[idx];
-            node.yaw = pool.yaw[idx];
-            path.push_back(node);
-            idx = pool.parent[idx];
-        }
-        std::reverse(path.begin(), path.end());
+        return;
     }
+    backTracePath(path, goal_reached_idx_);
+}
 
-private:
-    const GridMap esdf_;
-    const MotionPrimitives motion_primatives_;
-    int max_iterations_;
-    int yield_every_n_iterations_;
-    
-    NodePool pool_;
-    MinHeap open_set_;
-    DiscreteGrid grid_;
-    std::vector<double> best_g_cost_;
+void HybridAStarSearch::bestPath(std::vector<PathNode>& path) const
+{
+    if (open_set_.empty())
+    {
+        return;
+    }
+    int pool_index = open_set_.peek();
+    backTracePath(path, pool_index);
+}
 
-    double start_x_;
-    double start_y_;
-    double start_yaw_;
-    double goal_x_;
-    double goal_y_;
-    double goal_yaw_;
-    int goal_reached_idx_;
-    int iterations_;
-};
+void HybridAStarSearch::backTracePath(std::vector<PathNode>& path, int pool_index) const
+{
+    path.clear();
+    int idx = pool_index;
+    while (idx >= 0)
+    {
+        PathNode node;
+        node.x = pool_.x[idx];
+        node.y = pool_.y[idx];
+        node.yaw = pool_.yaw[idx];
+        path.push_back(node);
+        idx = pool_.parent[idx];
+    }
+    std::reverse(path.begin(), path.end());
+}
 
 } // namespace hybrid_a_star
 } // namespace dyno

@@ -94,6 +94,12 @@
         "queue": "cpp",
         "stack": "cpp",
         "__nullptr": "cpp",
-        "ios": "cpp"
+        "ios": "cpp",
+        "charconv": "cpp",
+        "scoped_allocator": "cpp",
+        "span": "cpp",
+        "barrier": "cpp",
+        "latch": "cpp",
+        "syncstream": "cpp"
     }
 }
