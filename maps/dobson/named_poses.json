@@ -1,0 +1,248 @@
+{
+  "named_poses": {
+    "charge_action": {
+      "x": 52.2616859456175,
+      "y": -16.532603559549898,
+      "yaw": -0.5780286652017739,
+      "turning_radius": 2.5,
+      "variation": 0.0,
+      "use_line_planner": true
+    },
+    "charge_action_pre": {
+      "x": 52.17793180936164,
+      "y": -16.477966167042254,
+      "yaw": -0.5780286652017739,
+      "turning_radius": 2.5,
+      "variation": 0.0,
+      "use_line_planner": true
+    },
+    "charge_action_in": {
+      "x": 50.16783253922093,
+      "y": -15.166668746858791,
+      "yaw": -0.5780286652017739,
+      "turning_radius": 2.5,
+      "variation": 0.0,
+      "use_line_planner": true
+    },
+    "charge_enter": [
+      {
+        "x": 45.22089381859405,
+        "y": -12.275411186274141,
+        "yaw": -0.5332541528293265,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": false
+      }
+    ],
+    "charge_exit": [
+      {
+        "x": 56.447211195365526,
+        "y": -19.26656262949109,
+        "yaw": -0.5786122246338071,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      }
+    ],
+    "dropoff_action": [
+      {
+        "x": -13.865269046917092,
+        "y": 12.029843285214156,
+        "yaw": 2.742901259790783,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -14.233896789490245,
+        "y": 12.185100122820586,
+        "yaw": 2.7429012597627787,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -14.602524532238021,
+        "y": 12.340356959961355,
+        "yaw": 2.7429012597002136,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -14.97115227294853,
+        "y": 12.495613799896091,
+        "yaw": 2.7429012596814744,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -15.339780013891868,
+        "y": 12.650870638899505,
+        "yaw": 2.7429012596448876,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -15.70840775500983,
+        "y": 12.806127477437258,
+        "yaw": 2.742901259612818,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      }
+    ],
+    "dropoff_action_in": [
+      {
+        "x": -8.796635144279609,
+        "y": 9.894673418193285,
+        "yaw": 2.742901259790783,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -8.796634966725087,
+        "y": 9.894645174409568,
+        "yaw": 2.7429012597627787,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -8.796634789438414,
+        "y": 9.894616929938886,
+        "yaw": 2.7429012597002136,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -8.796634610019911,
+        "y": 9.89458868848665,
+        "yaw": 2.7429012596814744,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -8.79663443088925,
+        "y": 9.894560445972495,
+        "yaw": 2.7429012596448876,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -8.796634251931422,
+        "y": 9.894532202996928,
+        "yaw": 2.742901259612818,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      }
+    ],
+    "dropoff_enter": [
+      {
+        "x": 2.1934290895587765,
+        "y": 0.47679918725043535,
+        "yaw": 2.011952189813243,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": false
+      },
+      {
+        "x": 0.36432655615499243,
+        "y": 5.285819294396788,
+        "yaw": 2.1934554608994543,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -2.1869423234602436,
+        "y": 7.3526706150732934,
+        "yaw": 2.7523380624959426,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      }
+    ],
+    "dropoff_exit": [
+      {
+        "x": -18.418129495868925,
+        "y": 13.978799008298665,
+        "yaw": 2.7725945323908134,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -23.543145438830834,
+        "y": 14.380525854416192,
+        "yaw": -2.5210875620531508,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -22.30186752503505,
+        "y": 9.784719907678664,
+        "yaw": -0.6039645455685079,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -18.61687170038931,
+        "y": 8.82388818077743,
+        "yaw": 0.1765311889946857,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -12.82891636423301,
+        "y": 9.350468770600855,
+        "yaw": -0.18661173842520412,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -8.244853214418981,
+        "y": 8.37744544679299,
+        "yaw": -0.26677986236514495,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": -2.4724537212750874,
+        "y": 7.978638602886349,
+        "yaw": -0.36736919507474397,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": 0.4890605421969667,
+        "y": 5.27173500880599,
+        "yaw": -1.1660222149101926,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": 1.360251282749232,
+        "y": 0.6113868933171034,
+        "yaw": -1.3664699279507875,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      }
+    ]
+  }
+}

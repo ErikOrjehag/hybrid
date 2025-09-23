@@ -5,6 +5,7 @@
 #include "include/utils.hpp"
 #include "include/rs_path.hpp"
 #include "include/hybrid_astar.hpp"
+#include "vendor/json.hpp"
 
 int main()
 {
@@ -24,7 +25,7 @@ int main()
     Eigen::Vector2d mouse_pos_m_pressed;
 
     dyno::GridMap occupancy_map;
-    occupancy_map.loadPGM("maps/dobson.yaml", true);
+    occupancy_map.loadPGM("maps/dobson/dobson.yaml", true);
     dyno::visual::GridMapRenderer occupancy_map_renderer(occupancy_map, sf::Color::White, sf::Color::Black, 0.3);
 
     dyno::GridMap esdf_map;
@@ -210,7 +211,7 @@ int main()
         {
             double start_x, start_y, start_yaw;
             astar_search.getStartPose(start_x, start_y, start_yaw);
-            transform(ts, { .x=start_x, .y=start_y, .angle=start_yaw, .sx=0.5 }, [&]() {
+            transform(ts, { .x=start_x, .y=start_y, .angle=start_yaw }, [&]() {
                 dyno::visual::draw_frame(window, ts);
             });
         }
