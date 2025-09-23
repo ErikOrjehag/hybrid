@@ -110,20 +110,34 @@ void HybridAStarSearch::setStartPose(double start_x, double start_y, double star
     start_yaw_ = start_yaw;
 }
 
-void HybridAStarSearch::start(
-    double goal_x,
-    double goal_y,
-    double goal_yaw
-)
+void HybridAStarSearch::getStartPose(double& start_x, double& start_y, double& start_yaw) const
 {
-    reset();
+    start_x = start_x_;
+    start_y = start_y_;
+    start_yaw = start_yaw_;
+}
 
+
+void HybridAStarSearch::setGoalPose(double goal_x, double goal_y, double goal_yaw)
+{
     goal_x_ = goal_x;
     goal_y_ = goal_y;
     goal_yaw_ = goal_yaw;
+}
+
+void HybridAStarSearch::getGoalPose(double& goal_x, double& goal_y, double& goal_yaw) const
+{
+    goal_x = goal_x_;
+    goal_y = goal_y_;
+    goal_yaw = goal_yaw_;
+}
+
+void HybridAStarSearch::start()
+{
+    reset();
 
     size_t start_idx = grid_.worldToIdx(start_x_, start_y_, start_yaw_);
-    size_t goal_idx = grid_.worldToIdx(goal_x, goal_y, goal_yaw);
+    size_t goal_idx = grid_.worldToIdx(goal_x_, goal_y_, goal_yaw_);
 
     double g0 = 0.0;
     double f0 = g0 + heuristic(start_x_, start_y_, start_yaw_);
@@ -262,9 +276,14 @@ void HybridAStarSearch::step()
     }
 }
 
-bool HybridAStarSearch::active()
+bool HybridAStarSearch::isSearching() const
 {
     return iterations_ > 0 && !(iterations_ >= max_iterations_) && !open_set_.empty() && goal_reached_idx_ < 0;
+}
+
+bool HybridAStarSearch::foundGoal() const
+{
+    return goal_reached_idx_ >= 0;
 }
 
 double HybridAStarSearch::heuristic(double x, double y, double yaw) const
@@ -283,7 +302,7 @@ void HybridAStarSearch::getGoalPath(std::vector<PathNode>& path) const
     {
         return;
     }
-    backTracePath(path, goal_reached_idx_);
+    backTracePath(path, goal_reached_idx_, true);
 }
 
 void HybridAStarSearch::getCurrentPath(std::vector<PathNode>& path) const
@@ -293,23 +312,66 @@ void HybridAStarSearch::getCurrentPath(std::vector<PathNode>& path) const
     {
         return;
     }
-    backTracePath(path, current_pool_index_);
+    backTracePath(path, current_pool_index_, false);
 }
 
-void HybridAStarSearch::backTracePath(std::vector<PathNode>& path, int pool_index) const
+void HybridAStarSearch::backTracePath(std::vector<PathNode>& path, int pool_index, bool include_primitives) const
 {
     path.clear();
-    int idx = pool_index;
-    while (idx >= 0)
+    PathNode node;
+
+    if (include_primitives)
     {
-        PathNode node;
-        node.x = pool_.x[idx];
-        node.y = pool_.y[idx];
-        node.yaw = pool_.yaw[idx];
+        int idx = pool_index;
+        double x = pool_.x[idx];
+        double y = pool_.y[idx];
+        double yaw = pool_.yaw[idx];
+        node.x = x;
+        node.y = y;
+        node.yaw = yaw;
         path.push_back(node);
+        int last_prim_turning_rate_index = pool_.prim_turning_rate_index[idx];
+        int last_prim_velocity_index = pool_.prim_velocity_index[idx];
         idx = pool_.parent[idx];
+        while (idx >= 0)
+        {
+            double x = pool_.x[idx];
+            double y = pool_.y[idx];
+            double yaw = pool_.yaw[idx];
+            double cos_yaw = std::cos(yaw);
+            double sin_yaw = std::sin(yaw);
+            auto prim = motion_primatives_.at({last_prim_turning_rate_index, last_prim_velocity_index});
+            for (int i = prim.size() - 1; i >= 0; --i)
+            {
+                const auto& state = prim[i];
+                node.x = x + state.x * cos_yaw - state.y * sin_yaw;
+                node.y = y + state.x * sin_yaw + state.y * cos_yaw;
+                node.yaw = yaw + state.yaw;
+                path.push_back(node);
+            }
+            last_prim_turning_rate_index = pool_.prim_turning_rate_index[idx];
+            last_prim_velocity_index = pool_.prim_velocity_index[idx];
+            idx = pool_.parent[idx];
+        }
+
+        std::reverse(path.begin(), path.end());
     }
-    std::reverse(path.begin(), path.end());
+    else
+    {
+        int idx = pool_index;
+        while (idx >= 0)
+        {
+            double x = pool_.x[idx];
+            double y = pool_.y[idx];
+            double yaw = pool_.yaw[idx];
+            node.x = x;
+            node.y = y;
+            node.yaw = yaw;
+            path.push_back(node);
+            idx = pool_.parent[idx];
+        }
+        std::reverse(path.begin(), path.end());
+    }
 }
 
 } // namespace hybrid_a_star

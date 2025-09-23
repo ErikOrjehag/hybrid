@@ -6,6 +6,19 @@
 #include "include/rs_path.hpp"
 #include "include/hybrid_astar.hpp"
 #include "vendor/json.hpp"
+#include <fstream>
+
+nlohmann::json read_json_file(const std::string& filename)
+{
+    std::ifstream json_file(filename);
+    if (!json_file.is_open())
+    {
+        throw std::runtime_error("Failed to open JSON file: " + filename);
+    }
+    nlohmann::json j = nlohmann::json::parse(json_file);
+    json_file.close();
+    return j;
+}
 
 int main()
 {
@@ -24,6 +37,12 @@ int main()
     Eigen::Vector2d mouse_pos_m;
     Eigen::Vector2d mouse_pos_m_pressed;
 
+    //
+    auto coverage_plan = read_json_file("maps/dobson/coverage_plan.json");
+    auto named_poses = read_json_file("maps/dobson/named_poses.json");
+    // printf(coverage_plan.dump(4).c_str());
+    //
+
     dyno::GridMap occupancy_map;
     occupancy_map.loadPGM("maps/dobson/dobson.yaml", true);
     dyno::visual::GridMapRenderer occupancy_map_renderer(occupancy_map, sf::Color::White, sf::Color::Black, 0.3);
@@ -37,18 +56,22 @@ int main()
     dyno::visual::GridMapRenderer ridge_map_renderer(ridge_map, sf::Color::Transparent, sf::Color::Green, 1.0);
 
     //
+
     double esdf_gradient_yaw = 0.0;
     dyno::hybrid_a_star::MotionPrimitives motion_primatives = dyno::hybrid_a_star::precompute_motion_primatives();
-    std::vector<dyno::rs::Path> paths;
+    std::vector<dyno::rs::Path> rs_paths;
+    dyno::rs::Path rs_shortest_path;
     std::vector<dyno::hybrid_a_star::PathNode> astar_path;
     std::vector<dyno::hybrid_a_star::PathNode> astar_frontier;
     dyno::hybrid_a_star::HybridAStarSearch astar_search(
         esdf_map,
         motion_primatives,
         10'000'000,
-        1'000
+        0//1'000
     );
     //
+
+    int coverage_plan_index = 0;
 
     while (window.isOpen())
     {
@@ -79,12 +102,12 @@ int main()
                 mouse_pos_px = event_pos_px;
                 mouse_pos_m = ts.transform_point(mouse_pos_px);
 
-                if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
-                {
-                    Eigen::Vector2d delta_m = mouse_pos_m - mouse_pos_m_pressed;
-                    double mouse_yaw_pressed = std::atan2(delta_m.y(), delta_m.x());
-                    astar_search.setStartPose(mouse_pos_m_pressed.x(), mouse_pos_m_pressed.y(), mouse_yaw_pressed);
-                }
+                // if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                // {
+                //     Eigen::Vector2d delta_m = mouse_pos_m - mouse_pos_m_pressed;
+                //     double mouse_yaw_pressed = std::atan2(delta_m.y(), delta_m.x());
+                //     astar_search.setStartPose(mouse_pos_m_pressed.x(), mouse_pos_m_pressed.y(), mouse_yaw_pressed);
+                // }
 
                 double v, dvx, dvy;
                 if (occupancy_map.isInside(mouse_pos_m.x(), mouse_pos_m.y())) {
@@ -127,9 +150,18 @@ int main()
             {
                 if (event.key.code == sf::Keyboard::P)
                 {
-                    astar_search.start(
-                        mouse_pos_m.x(), mouse_pos_m.y(), esdf_gradient_yaw
-                    );
+                    auto startPose = coverage_plan["coverage_plan"][coverage_plan_index];
+                    double sx = startPose["x"];
+                    double sy = startPose["y"];
+                    double syaw = startPose["yaw"];
+                    astar_search.setStartPose(sx, sy, syaw);
+                    auto goalPose = coverage_plan["coverage_plan"][(coverage_plan_index + 1) % coverage_plan["coverage_plan"].size()];
+                    double gx = goalPose["x"];
+                    double gy = goalPose["y"];
+                    double gyaw = goalPose["yaw"];
+                    astar_search.setGoalPose(gx, gy, gyaw);
+                    coverage_plan_index = (coverage_plan_index + 1) % coverage_plan["coverage_plan"].size();
+                    astar_search.start();
                 }
                 continue;
             }
@@ -144,16 +176,25 @@ int main()
 
         }
 
-        if (astar_search.active())
+        if (astar_search.isSearching())
         {
             astar_search.step();
             astar_search.getCurrentPath(astar_path);
             astar_search.getFrontier(astar_frontier, 100);
+        } else if (astar_search.foundGoal()) {
+            astar_search.getGoalPath(astar_path);
+            {
+                double start_x, start_y, start_yaw;
+                astar_search.getStartPose(start_x, start_y, start_yaw);
+                double end_x, end_y, end_yaw;
+                astar_search.getGoalPose(end_x, end_y, end_yaw);
+                dyno::rs::shortest_path(start_x, start_y, start_yaw, end_x, end_y, end_yaw, 1.0/1.0, 0.1, rs_shortest_path);
+            }
         }
 
-        if (std::hypot(mouse_pos_m.x(), mouse_pos_m.y()) > 0.1) {
-            dyno::rs::generate_paths(0, 0, 0, mouse_pos_m.x(), mouse_pos_m.y(), esdf_gradient_yaw, 1.0/1.0, 0.1, paths);
-        }
+        // if (std::hypot(mouse_pos_m.x(), mouse_pos_m.y()) > 0.1) {
+        //     dyno::rs::generate_paths(0, 0, 0, mouse_pos_m.x(), mouse_pos_m.y(), esdf_gradient_yaw, 1.0/1.0, 0.1, rs_paths);
+        // }
 
         // Render new frame
         window.clear(sf::Color(50, 50, 50, 255));
@@ -174,16 +215,6 @@ int main()
         });
 
         dyno::visual::draw_motion_primatives_at(window, ts, motion_primatives, 0, 0, 0, 1);
-
-        for (const auto& path : paths) {
-            sf::VertexArray lines(sf::LineStrip, path.x.size());
-            for (size_t i = 0; i < path.x.size(); ++i)
-            {
-                lines[i].position = sf::Vector2f(path.x[i], path.y[i]);
-                lines[i].color = sf::Color::Cyan;
-            }
-            window.draw(lines, ts);
-        }
 
         if (astar_path.size() >= 2) {
             sf::VertexArray lines(sf::LineStrip, astar_path.size());
@@ -214,6 +245,79 @@ int main()
             transform(ts, { .x=start_x, .y=start_y, .angle=start_yaw }, [&]() {
                 dyno::visual::draw_frame(window, ts);
             });
+            double goal_x, goal_y, goal_yaw;
+            astar_search.getStartPose(goal_x, goal_y, goal_yaw);
+            transform(ts, { .x=goal_x, .y=goal_y, .angle=goal_yaw }, [&]() {
+                dyno::visual::draw_frame(window, ts);
+            });
+        }
+
+        for (const auto& pose : coverage_plan["coverage_plan"])
+        {
+            double x = pose["x"];
+            double y = pose["y"];
+            double yaw = pose["yaw"];
+            transform(ts, { .x=x, .y=y, .angle=yaw, .s=0.5 }, [&]() {
+                dyno::visual::draw_frame(window, ts);
+            });
+        }
+
+        for (const auto& path : rs_paths) {
+            sf::VertexArray lines(sf::LineStrip, path.x.size());
+            for (size_t i = 0; i < path.x.size(); ++i)
+            {
+                lines[i].position = sf::Vector2f(path.x[i], path.y[i]);
+                lines[i].color = sf::Color::Cyan;
+            }
+            window.draw(lines, ts);
+        }
+
+        {
+            sf::VertexArray lines(sf::LineStrip, rs_shortest_path.x.size());
+            for (size_t i = 0; i < rs_shortest_path.x.size(); ++i)
+            {
+                lines[i].position = sf::Vector2f(rs_shortest_path.x[i], rs_shortest_path.y[i]);
+                lines[i].color = sf::Color::Cyan;
+            }
+            window.draw(lines, ts);
+        }
+
+        {
+            const std::string multi_pose_names[] = {
+                "charge_enter",
+                "charge_exit",
+                "dropoff_enter",
+                "dropoff_action_in",
+                "dropoff_action",
+                "dropoff_exit",
+            };
+            for (const auto& name : multi_pose_names)
+            {
+                for (const auto& pose : named_poses["named_poses"][name])
+                {
+                    double x = pose["x"];
+                    double y = pose["y"];
+                    double yaw = pose["yaw"];
+                    transform(ts, { .x=x, .y=y, .angle=yaw, .s=0.5 }, [&]() {
+                        dyno::visual::draw_frame(window, ts);
+                    });
+                }
+            }
+            const std::string single_pose_names[] = {
+                "charge_action_in",
+                "charge_action_pre",
+                "charge_action",
+            };
+            for (const auto& name : single_pose_names)
+            {
+                const auto& pose = named_poses["named_poses"][name];
+                double x = pose["x"];
+                double y = pose["y"];
+                double yaw = pose["yaw"];
+                transform(ts, { .x=x, .y=y, .angle=yaw, .s=0.5 }, [&]() {
+                    dyno::visual::draw_frame(window, ts);
+                });
+            }
         }
 
         window.display();

@@ -220,22 +220,20 @@ public:
 
     void setStartPose(double start_x, double start_y, double start_yaw);
 
-    void getStartPose(double& start_x, double& start_y, double& start_yaw) const
-    {
-        start_x = start_x_;
-        start_y = start_y_;
-        start_yaw = start_yaw_;
-    }
+    void getStartPose(double& start_x, double& start_y, double& start_yaw) const;
 
-    void start(
-        double goal_x,
-        double goal_y,
-        double goal_yaw
-    );
+    void setGoalPose(double goal_x, double goal_y, double goal_yaw);
+
+    void getGoalPose(double& goal_x, double& goal_y, double& goal_yaw) const;
+
+
+
+    void start();
 
     void step();
 
-    bool active();
+    bool isSearching() const;
+    bool foundGoal() const;
 
     double heuristic(double x, double y, double yaw) const;
     
@@ -273,7 +271,7 @@ public:
     }
 
 private:
-    void backTracePath(std::vector<PathNode>& path, int pool_index) const;
+    void backTracePath(std::vector<PathNode>& path, int pool_index, bool include_primitives) const;
 
     const GridMap& esdf_;
     const MotionPrimitives& motion_primatives_;

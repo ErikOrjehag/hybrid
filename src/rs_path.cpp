@@ -238,7 +238,10 @@ void shortest_path(
         }
     }
 
-    path = paths.at(min_cost_index);
+    if (paths.size() > 0)
+    {
+        path = paths.at(min_cost_index);
+    }
 }
 
 void generate_paths(
