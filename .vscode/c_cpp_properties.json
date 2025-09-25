@@ -8,10 +8,12 @@
                 "/usr/local/include/**",
                 "/usr/local/include/eigen3/**",
                 "/usr/local/include/boost_1_89_0/**",
-                "/usr/include/ompl-1.7/**"
+                "/usr/include/ompl-1.7/**",
+                "/usr/local/include/ompl-1.8/**",
+                "/usr/include/eigen3/**"
             ],
             "defines": [],
-            "compilerPath": "/usr/bin/gcc-10",
+            "compilerPath": "/usr/bin/gcc",
             "cStandard": "gnu17",
             "cppStandard": "gnu++20",
             "intelliSenseMode": "linux-gcc-x64"

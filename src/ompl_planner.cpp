@@ -27,10 +27,13 @@ OMPLPlanner::OMPLPlanner()
     
     planner_->as<ompl::geometric::RRTstar>()->setAdmissibleCostToCome(true);
     planner_->as<ompl::geometric::RRTstar>()->setInformedSampling(false);
+    planner_->as<ompl::geometric::RRTstar>()->setSampleRejection(false);
     // planner_->as<ompl::geometric::RRTstar>()->setTreePruning(true);
     // planner_->as<ompl::geometric::RRTstar>()->setPrunedMeasure(true);
 
     simple_setup_->setPlanner(planner_);
+
+    simple_setup_->print();
 }
 
 void OMPLPlanner::setup(const GridMap& esdf_map, const std::vector<std::array<double, 3>>& guides)
@@ -53,8 +56,9 @@ void OMPLPlanner::setup(const GridMap& esdf_map, const std::vector<std::array<do
 
     simple_setup_->setStateValidityChecker(state_validity_checker_);
 
-    simple_setup_->getSpaceInformation()->setValidStateSamplerAllocator(
+    simple_setup_->getStateSpace()->setStateSamplerAllocator(
         std::bind(&OMPLPlanner::allocOBMySampler, this, std::placeholders::_1, esdf_map, guides));
+        
 }
 
 

@@ -3,7 +3,7 @@
 #include <ompl/geometric/SimpleSetup.h>
 #include "include/grid_map.hpp"
 #include <ompl/base/spaces/DubinsStateSpace.h>
-#include <ompl/base/ValidStateSampler.h>
+#include <ompl/base/StateSampler.h>
 #include <random>
 #include "include/grid_map.hpp"
 
@@ -35,27 +35,34 @@ private:
     const GridMap& esdf_map_;
 };
 
-class MySampler : public ompl::base::ValidStateSampler
+class MySampler : public ompl::base::StateSampler
 {
 public:
-    MySampler(const ompl::base::SpaceInformation* si, const GridMap& esdf_map, const std::vector<std::array<double, 3>>& guides)
-        : ompl::base::ValidStateSampler(si), rng_(std::random_device{}()), esdf_map_(esdf_map), guides_(guides)
+    MySampler(const ompl::base::StateSpace* space, const GridMap& esdf_map, const std::vector<std::array<double, 3>>& guides)
+        : ompl::base::StateSampler(space), rng_(std::random_device{}()), esdf_map_(esdf_map), guides_(guides)
     {
     }
 
-    virtual bool sample(ompl::base::State* state) override
+    virtual void sampleUniform(ompl::base::State* state) override
     {
-        printf("SAMPLING\n");
+        // printf("SAMPLING\n");
         // 10% probability to sample from guides
         if (!guides_.empty() && rng_.uniformReal(0.0, 1.0) < 0.1)
         {
+            printf("GUIDE SAMPLING\n");
             int index = rng_.uniformInt(0, guides_.size() - 1);
             auto guide = guides_[index];
             auto* se2_state = state->as<ompl::base::SE2StateSpace::StateType>();
-            se2_state->setX(guide[0]);
-            se2_state->setY(guide[1]);
-            se2_state->setYaw(guide[2]);
-            return true;
+
+            // Sample x and y around the guide with Gaussian noise
+            double sampled_x = rng_.gaussian(guide[0], 0.3);
+            double sampled_y = rng_.gaussian(guide[1], 0.3);
+            double sampled_yaw = rng_.gaussian(guide[2], 0.4);
+
+            se2_state->setX(sampled_x);
+            se2_state->setY(sampled_y);
+            se2_state->setYaw(sampled_yaw);
+            return;
         }
         double x_min, y_min, x_max, y_max;
         esdf_map_.bounds(x_min, y_min, x_max, y_max);
@@ -63,10 +70,10 @@ public:
         se2_state->setX(rng_.uniformReal(x_min, x_max));
         se2_state->setY(rng_.uniformReal(y_min, y_max));
         se2_state->setYaw(rng_.uniformReal(-M_PI, M_PI));
-        return true;
+        return;
     }
 
-    virtual bool sampleNear(ompl::base::State* state, const ompl::base::State* near, double distance) override
+    virtual void sampleUniformNear(ompl::base::State* state, const ompl::base::State* near, double distance) override
     {
         const auto* near_state = near->as<ompl::base::SE2StateSpace::StateType>();
         auto* se2_state = state->as<ompl::base::SE2StateSpace::StateType>();
@@ -74,12 +81,24 @@ public:
         double r = rng_.uniformReal(0.0, distance);
         double new_x = near_state->getX() + r * cos(angle);
         double new_y = near_state->getY() + r * sin(angle);
-        if (!esdf_map_.isInside(new_x, new_y))
-            return false;
         se2_state->setX(new_x);
         se2_state->setY(new_y);
         se2_state->setYaw(rng_.uniformReal(-M_PI, M_PI));
-        return true;
+        return;
+    }
+
+    virtual void sampleGaussian(ompl::base::State* state, const ompl::base::State* mean, double stdDev) override
+    {
+        const auto* mean_state = mean->as<ompl::base::SE2StateSpace::StateType>();
+        auto* se2_state = state->as<ompl::base::SE2StateSpace::StateType>();
+        double new_x = rng_.gaussian(mean_state->getX(), stdDev);
+        double new_y = rng_.gaussian(mean_state->getY(), stdDev);
+        if (!esdf_map_.isInside(new_x, new_y))
+            return;
+        se2_state->setX(new_x);
+        se2_state->setY(new_y);
+        se2_state->setYaw(rng_.uniformReal(-M_PI, M_PI));
+        return;
     }
 
 private:
@@ -101,9 +120,9 @@ public:
               std::vector<std::array<double, 3>>& path);
 
 private:
-    ompl::base::ValidStateSamplerPtr allocOBMySampler(const ompl::base::SpaceInformation *si, const GridMap& esdf_map, const std::vector<std::array<double, 3>>& guides_)
+    ompl::base::StateSamplerPtr allocOBMySampler(const ompl::base::StateSpace *space, const GridMap& esdf_map, const std::vector<std::array<double, 3>>& guides_)
     {
-        return std::make_shared<MySampler>(si, esdf_map, guides_);
+        return std::make_shared<MySampler>(space, esdf_map, guides_);
     }
 
     std::shared_ptr<ompl::geometric::SimpleSetup> simple_setup_;
