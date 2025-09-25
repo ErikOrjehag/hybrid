@@ -6,7 +6,9 @@
                 "${workspaceFolder}/**",
                 "/usr/include/**",
                 "/usr/local/include/**",
-                "/usr/local/include/boost_1_79_0/**"
+                "/usr/local/include/eigen3/**",
+                "/usr/local/include/boost_1_89_0/**",
+                "/usr/include/ompl-1.7/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc-10",

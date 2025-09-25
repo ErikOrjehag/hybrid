@@ -22,6 +22,13 @@ public:
     inline double x() const { return x_; }
     inline double y() const { return y_; }
     inline double resolution() const { return resolution_; }
+    inline void bounds(double& xmin, double& ymin, double& xmax, double& ymax) const
+    {
+        xmin = x_;
+        ymin = y_;
+        xmax = x_ + width_ * resolution_;
+        ymax = y_ + height_ * resolution_;
+    }
     inline bool isInside(double x, double y) const
     {
         return (x >= x_) && (x < x_ + width_ * resolution_) && (y >= y_) && (y < y_ + height_ * resolution_);
