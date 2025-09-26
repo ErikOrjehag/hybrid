@@ -1,0 +1,19 @@
+{
+	"name": "motion-planning",
+	"dockerComposeFile": "../docker-compose.yml",
+	"service": "motion-planning",
+    "remoteUser": "ros",
+    "workspaceFolder": "/home/ros/ws/src/hybrid",
+    "customizations": {
+        "vscode": {
+        "extensions": [
+            "streetsidesoftware.code-spell-checker",
+            "ms-python.python",
+            "MS-vsliveshare.vsliveshare",
+            "ms-vscode.cmake-tools",
+            "github.copilot"
+        ]
+        }
+    },
+    "forwardPorts": [6006] 
+}

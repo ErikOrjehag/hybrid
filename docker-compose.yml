@@ -1,0 +1,28 @@
+services:
+  hybrid-planner:
+    container_name: motion-planning
+    image: hybrid-planner
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    # ipc: host
+    network_mode: host
+    environment:
+      SDL_VIDEODRIVER: x11
+      DISPLAY: $DISPLAY
+      ROS_DOMAIN_ID: 103
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ./:/home/ros/ws/src/hybrid
+      - /dev/bus/usb/:/dev/bus/usb
+      - ./maps:/home/ros/maps
+    stdin_open: true
+    privileged: true
+    group_add:
+      - video
+    tty: true
+    command: tail -f /dev/null
+    restart: always
+    
+  

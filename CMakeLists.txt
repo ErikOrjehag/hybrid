@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
 project(hybrid)
 
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+
 find_package(ompl REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem)
@@ -40,3 +43,27 @@ message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
 message(STATUS "SFML include dirs: ${SFML_INCLUDE_DIRS}")
 message(STATUS "SFML libraries: ${SFML_LIBRARIES}")
 
+install(TARGETS hybrid
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+
+# Uncomment the following lines when we ultimately convert this to a ROS2 Nav2 plugin
+
+# install(DIRECTORY include/
+#     DESTINATION include/
+# )
+
+# install(FILES global_planner_plugin.xml
+#     DESTINATION share/${PROJECT_NAME}
+# )
+
+# # install the launch and params folders
+# install(DIRECTORY
+#     launch
+#     params
+#     DESTINATION share/${PROJECT_NAME}
+# )
+
+ament_package()
