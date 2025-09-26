@@ -1,5 +1,5 @@
 services:
-  hybrid-planner:
+  motion-planning:
     container_name: motion-planning
     image: hybrid-planner
     build:
