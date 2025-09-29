@@ -12,7 +12,7 @@ namespace ompl_planner {
 OMPLPlanner::OMPLPlanner()
 {
       // Create a car state space ptr
-    ompl::base::StateSpacePtr car_state_space = std::make_shared<ompl::base::DubinsStateSpace>(1.0);
+    ompl::base::StateSpacePtr car_state_space = std::make_shared<ompl::base::DubinsStateSpace>(2.5);
 
     simple_setup_ = std::make_shared<ompl::geometric::SimpleSetup>(car_state_space);
 

@@ -1,0 +1,120 @@
+{
+  "named_poses": {
+    "charge_action": {
+      "x": 4.188218420604244,
+      "y": -7.589847900904715,
+      "yaw": -1.3773779507214872,
+      "turning_radius": 2.5,
+      "variation": 0.0,
+      "use_line_planner": true
+    },
+    "charge_action_pre": {
+      "x": 4.1689969561257145,
+      "y": -7.491712610089939,
+      "yaw": -1.3773779507214872,
+      "turning_radius": 2.5,
+      "variation": 0.0,
+      "use_line_planner": true
+    },
+    "charge_action_in": {
+      "x": 3.8998964534263054,
+      "y": -6.117818538683077,
+      "yaw": -1.3773779507214872,
+      "turning_radius": 2.5,
+      "variation": 0.0,
+      "use_line_planner": true
+    },
+    "charge_enter": [
+      {
+        "x": 17.11804415343795,
+        "y": -5.045630504377186,
+        "yaw": 2.6746711167625676,
+        "turning_radius": 2.5,
+        "variation": 2.0,
+        "use_line_planner": false
+      },
+      {
+        "x": 4.438673740136437,
+        "y": -3.8014783719554543,
+        "yaw": -2.037717579783392,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      }
+    ],
+    "charge_exit": [
+      {
+        "x": 10.08939155866392,
+        "y": -9.286715655587614,
+        "yaw": -0.1483874014728284,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": 14.943566993577406,
+        "y": -10.220166117884219,
+        "yaw": -0.4653515413184031,
+        "turning_radius": 2.5,
+        "variation": 7.0,
+        "use_line_planner": true
+      }
+    ],
+    "dropoff_action": [
+      {
+      "x": 2.7369247706374153,
+      "y": -8.163121122866869,
+      "yaw": -1.3418316856702301,
+      "turning_radius": 2.5,
+      "variation": 0.0,
+      "use_line_planner": true
+      }
+    ],
+    "dropoff_action_in": [
+      {
+      "x": 2.3964708095684366,
+      "y": -6.702268255397854,
+      "yaw": -1.3418316856702301,
+      "turning_radius": 2.5,
+      "variation": 0.0,
+      "use_line_planner": true
+      }
+    ],
+    "dropoff_enter": [
+      {
+        "x": 15.13764503702987,
+        "y": -4.745513415895402,
+        "yaw": 2.7194807133681422,
+        "turning_radius": 2.5,
+        "variation": 2.0,
+        "use_line_planner": false
+      },
+      {
+        "x": 5.393191979266703,
+        "y": -3.2102045500651,
+        "yaw": -2.561316180916109,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      }
+    ],
+    "dropoff_exit": [
+      {
+        "x": 8.559546625474468,
+        "y": -9.396733101457357,
+        "yaw": -0.1483885302166511,
+        "turning_radius": 2.5,
+        "variation": 0.0,
+        "use_line_planner": true
+      },
+      {
+        "x": 16.365631789667532,
+        "y": -11.06085602287203,
+        "yaw": -0.584721653560717,
+        "turning_radius": 2.5,
+        "variation": 7.0,
+        "use_line_planner": true
+      }
+    ]
+  }
+}

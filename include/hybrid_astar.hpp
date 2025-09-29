@@ -11,7 +11,7 @@ namespace dyno
 namespace hybrid_a_star
 {
 
-const double MAX_TURNING_RATE = 0.9; // rad/s
+const double MAX_TURNING_RATE = 1.0 / 2.5; // rad/s
 // const double MAX_VELOCITY = 1.3; // m/s
 // const double MIN_VELOCITY = 0.5; // m/s
 const double MAX_VELOCITY = 1.0; // m/s

@@ -49,7 +49,7 @@ public:
         // 10% probability to sample from guides
         if (!guides_.empty() && rng_.uniformReal(0.0, 1.0) < 0.1)
         {
-            printf("GUIDE SAMPLING\n");
+            // printf("GUIDE SAMPLING\n");
             int index = rng_.uniformInt(0, guides_.size() - 1);
             auto guide = guides_[index];
             auto* se2_state = state->as<ompl::base::SE2StateSpace::StateType>();

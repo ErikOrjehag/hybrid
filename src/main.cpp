@@ -9,8 +9,6 @@
 #include "include/ompl_planner.hpp"
 #include <fstream>
 
-const std::string maps_folder = "/home/ros/maps/dobson/";
-
 nlohmann::json read_json_file(const std::string& filename)
 {
     std::ifstream json_file(filename);
@@ -25,6 +23,9 @@ nlohmann::json read_json_file(const std::string& filename)
 
 int main()
 {
+    const std::string maps_folder = "/home/ros/maps";
+    const std::string location = "vasatorp";
+
     using dyno::visual::transform;
     using dyno::ompl_planner::OMPLPlanner;
 
@@ -49,13 +50,13 @@ int main()
     double to_y = 5.0;
     double to_yaw = 0.0;
     //
-    auto coverage_plan = read_json_file(maps_folder + "coverage_plan.json");
-    auto named_poses = read_json_file(maps_folder + "named_poses.json");
+    auto coverage_plan = read_json_file(maps_folder+"/"+location+"/coverage_plan.json");
+    auto named_poses = read_json_file(maps_folder+"/"+location+"/named_poses.json");
     // printf(coverage_plan.dump(4).c_str());
     //
 
     dyno::GridMap occupancy_map;
-    occupancy_map.loadPGM(maps_folder + "dobson.yaml", true);
+    occupancy_map.loadPGM(maps_folder+"/"+location+"/map.yaml", true);
     dyno::visual::GridMapRenderer occupancy_map_renderer(occupancy_map, sf::Color::White, sf::Color::Black, 0.3);
 
     dyno::GridMap esdf_map;
